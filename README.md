@@ -1,6 +1,8 @@
 # lyfstyl
 CS 4278 Group-15 Project 
 
+Lyfstyl Team — Cami, Julia, Mohamed, Maya 
+
 This repo serves as the version control hub for our PSWE project, Lyfstyl. 
 
 Lyfstyl is an all-in-one media logger and discovery web app that lets a user track what they watch, read, and listen to, see a personalized “What’s Trending” feed, and share a simple profile with stats and collections. We’re building the frontend in Flutter (Dart) so we get one codebase for web with fast hot-reload, and using Firebase for Auth and Cloud Firestore (NoSQL) as the database. Hosting is on Vercel (auto preview links on pull requests, auto-publish on main), with GitHub for version control and Trello for planning. 
