@@ -40,7 +40,9 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.3
   
-  # We'll need to include provider and http packages down the line for the imports and API calls
+  # Additional useful packages
+  provider: ^6.1.5+1
+  http: ^1.2.2
   
 
 dev_dependencies:
