@@ -1,0 +1,15 @@
+{
+  "name": "lyfstyl",
+  "version": "1.0.0",
+  "description": "Lyfstyl - An all-in-one media logger and discovery web app",
+  "scripts": {
+    "build": "echo 'No build step needed for API-only deployment'",
+    "dev": "echo 'Run flutter build web locally, then deploy'"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
+  }
+}

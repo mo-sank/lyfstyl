@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'profile/profile_screen.dart';
+import 'logs/add_log_screen.dart';
+import 'collections/my_collections_screen.dart';
+import 'trending/trending_music_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,6 +17,15 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Lyfstyl'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'My Profile',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
@@ -36,77 +49,38 @@ class HomeScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Your media logging journey starts here',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 32),
-            Consumer<AuthService>(
-              builder: (context, authService, child) {
-                final user = authService.currentUser;
-                if (user != null) {
-                  return Column(
-                    children: [
-                      Text(
-                        'Logged in as: ${user.email}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: user.emailVerified ? Colors.green : Colors.orange,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          user.emailVerified ? 'Email Verified ✓' : 'Email Not Verified',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            const SizedBox(height: 40),
-            const Text(
-              'Features coming soon:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Column(
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
               children: [
-                FeatureCard(
-                  icon: Icons.rate_review,
-                  title: 'Media Logging',
-                  description: 'Track what you watch, read, and listen to',
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Log'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AddLogScreen()),
+                    );
+                  },
                 ),
-                SizedBox(height: 12),
-                FeatureCard(
-                  icon: Icons.trending_up,
-                  title: 'Trending Feed',
-                  description: 'Discover what\'s popular in your community',
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.collections_bookmark),
+                  label: const Text('My Collections'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MyCollectionsScreen()),
+                    );
+                  },
                 ),
-                SizedBox(height: 12),
-                FeatureCard(
-                  icon: Icons.person,
-                  title: 'Profile & Collections',
-                  description: 'Share your stats and curated collections',
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.trending_up),
+                  label: const Text('Trending Music'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
+                    );
+                  },
                 ),
               ],
             ),
