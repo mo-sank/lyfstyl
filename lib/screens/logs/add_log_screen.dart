@@ -8,7 +8,9 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 
 class AddLogScreen extends StatefulWidget {
-  const AddLogScreen({super.key});
+  final Map<String, dynamic>? preFilledData;
+  
+  const AddLogScreen({super.key, this.preFilledData});
 
   @override
   State<AddLogScreen> createState() => _AddLogScreenState();
@@ -24,6 +26,35 @@ class _AddLogScreenState extends State<AddLogScreen> {
   double? _rating;
   DateTime _consumedAt = DateTime.now();
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _preFillForm();
+  }
+
+  void _preFillForm() {
+    if (widget.preFilledData != null) {
+      final data = widget.preFilledData!;
+      _titleCtrl.text = data['title'] ?? '';
+      _creatorCtrl.text = data['creator'] ?? '';
+      
+      // Set media type based on pre-filled data
+      final typeString = data['type']?.toString().toLowerCase();
+      switch (typeString) {
+        case 'music':
+          _type = MediaType.music;
+          break;
+        case 'book':
+          _type = MediaType.book;
+          break;
+        case 'film':
+        default:
+          _type = MediaType.film;
+          break;
+      }
+    }
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;

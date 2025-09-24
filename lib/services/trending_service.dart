@@ -31,6 +31,7 @@ class TrendingService {
   // Get trending music directly from Last.fm (FREE!)
   Future<List<TrendingItem>> getLatestMusic({int limit = 20}) async {
     try {
+      // Use chart.getTopTracks with extended info for better cover art
       final response = await http.get(
         Uri.parse('$_lastfmBaseUrl?method=chart.gettoptracks&api_key=$_lastfmApiKey&format=json&limit=$limit'),
       );
@@ -39,22 +40,54 @@ class TrendingService {
         final data = json.decode(response.body);
         final tracks = data['tracks']['track'] as List;
         
-        return tracks.map((track) => TrendingItem(
-          id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          type: 'music',
-          title: track['name'] ?? '',
-          artist: track['artist']['name'] ?? '',
-          coverUrl: _getImageUrl(track['image']),
-          previewUrl: null,
-          sources: ['lastfm'],
-          score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),
-        )).toList();
+        // Fetch additional track info for better cover art
+        final List<TrendingItem> items = [];
+        for (final track in tracks) {
+          final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
+          items.add(TrendingItem(
+            id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            type: 'music',
+            title: track['name'] ?? '',
+            artist: track['artist']['name'] ?? '',
+            coverUrl: trackInfo['coverUrl'],
+            previewUrl: null,
+            sources: ['lastfm'],
+            score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),
+          ));
+        }
+        
+        return items;
       }
     } catch (e) {
-      // Error fetching trending music: $e
+      print('Error fetching trending music: $e');
     }
     
     return [];
+  }
+
+  // Get additional track info including better cover art
+  Future<Map<String, dynamic>> _getTrackInfo(String trackName, String artistName) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_lastfmBaseUrl?method=track.getInfo&api_key=$_lastfmApiKey&artist=${Uri.encodeComponent(artistName)}&track=${Uri.encodeComponent(trackName)}&format=json'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final track = data['track'];
+        if (track != null) {
+          final album = track['album'];
+          if (album != null && album['image'] != null) {
+            final images = album['image'] as List;
+            return {'coverUrl': _getImageUrl(images)};
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching track info: $e');
+    }
+    
+    return {'coverUrl': null};
   }
 
   String? _getImageUrl(List<dynamic>? images) {
@@ -62,8 +95,16 @@ class TrendingService {
     
     // Get the largest image (usually the last one)
     for (int i = images.length - 1; i >= 0; i--) {
-      final url = images[i]['#text'] as String?;
-      if (url != null && url.isNotEmpty) return url;
+      final imageData = images[i];
+      
+      if (imageData is Map<String, dynamic>) {
+        final url = imageData['#text'] as String?;
+        
+        if (url != null && url.isNotEmpty && !url.contains('2a96cbd8b46e442fc41c2b86b821562f')) {
+          // Convert HTTP URLs to HTTPS to avoid mixed content issues
+          return url.replaceFirst('http://', 'https://');
+        }
+      }
     }
     return null;
   }

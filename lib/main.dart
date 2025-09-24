@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -48,8 +49,14 @@ class AuthWrapper extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasData && context.read<AuthService>().isEmailVerified) {
-          return const HomeScreen();
+        if (snapshot.hasData) {
+          final user = snapshot.data!;
+          if (user.emailVerified) {
+            return const HomeScreen();
+          } else {
+            // User is logged in but email not verified
+            return const EmailVerificationScreen();
+          }
         }
         return const LoginScreen();
       },

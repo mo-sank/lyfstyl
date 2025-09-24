@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/trending_service.dart';
+import '../logs/add_log_screen.dart';
 
 class TrendingMusicScreen extends StatefulWidget {
   const TrendingMusicScreen({super.key});
@@ -41,6 +42,20 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
     });
   }
 
+  void _logTrendingItem(BuildContext context, TrendingItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddLogScreen(
+          preFilledData: {
+            'title': item.title,
+            'type': 'music',
+            'creator': item.artist,
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _keywordsCtrl.dispose();
@@ -80,15 +95,57 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                       final item = _filtered[index];
                       return ListTile(
                         leading: item.coverUrl != null
-                            ? Image.network(item.coverUrl!, width: 56, height: 56, fit: BoxFit.cover)
-                            : const Icon(Icons.music_note),
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item.coverUrl!, 
+                                  width: 56, 
+                                  height: 56, 
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.music_note, color: Colors.grey),
+                                    );
+                                  },
+                                ),
+                              )
+                            : Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.music_note, color: Colors.grey),
+                              ),
                         title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(item.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        trailing: Wrap(
-                          spacing: 6,
-                          children: item.sources
-                              .map((s) => Chip(label: Text('$s')))
-                              .toList(),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Wrap(
+                              spacing: 6,
+                              children: item.sources
+                                  .map((s) => Chip(
+                                    label: Text('$s'),
+                                    backgroundColor: Colors.blue[50],
+                                    labelStyle: const TextStyle(fontSize: 10),
+                                  ))
+                                  .toList(),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
+                              onPressed: () => _logTrendingItem(context, item),
+                              tooltip: 'Log this track',
+                            ),
+                          ],
                         ),
                       );
                     },
