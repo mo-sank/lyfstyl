@@ -807,8 +807,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _signOut(BuildContext context) async {
     await context.read<AuthService>().signOut();
     if (context.mounted) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
       );
     }
   }

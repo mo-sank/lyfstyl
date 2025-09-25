@@ -41,8 +41,11 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
       
-      // Check if email is verified
-      if (result.user != null && !result.user!.emailVerified) {
+      await result.user?.reload();
+      User? refreshedUser = _auth.currentUser;
+
+      // Check if email is verified with refreshed data
+      if (refreshedUser != null && !refreshedUser.emailVerified) {
         await _auth.signOut();
         throw 'Please verify your email before signing in. Check your inbox for a verification link.';
       }
