@@ -43,6 +43,7 @@ dependencies:
   # Additional useful packages
   provider: ^6.1.5+1
   http: ^1.2.2
+  shared_preferences: ^2.2.3
   
 
 dev_dependencies:
