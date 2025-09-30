@@ -8,6 +8,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,31 +37,45 @@ class LyfstylApp extends StatelessWidget {
   }
 }
 
+
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: context.read<AuthService>().authStateChanges,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    print('DEBUG WRAPPER: AuthWrapper building...');
+    
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        final user = authService.currentUser;
+        
+        print('DEBUG WRAPPER: Consumer rebuild triggered');
+        print('DEBUG WRAPPER: Current user: ${user?.email ?? "null"}');
+        print('DEBUG WRAPPER: Email verified: ${user?.emailVerified ?? "N/A"}');
+        print('DEBUG WRAPPER: AuthService loading: ${authService.isLoading}');
+        
+        // Show loading screen while authentication is in progress
+        if (authService.isLoading) {
+          print('DEBUG WRAPPER: Showing loading screen (auth in progress)');
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasData) {
-          final user = snapshot.data!;
+        
+        if (user != null) {
+          print('DEBUG WRAPPER: User found - ${user.email}, verified: ${user.emailVerified}');
           if (user.emailVerified) {
+            print('DEBUG WRAPPER: Navigating to HomeScreen');
             return const HomeScreen();
           } else {
-            // User is logged in but email not verified
+            print('DEBUG WRAPPER: Navigating to EmailVerificationScreen');
             return const EmailVerificationScreen();
           }
         }
+        
+        print('DEBUG WRAPPER: No user found, navigating to LoginScreen');
         return const LoginScreen();
       },
     );
   }
 }
-

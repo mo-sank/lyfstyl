@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -28,146 +27,224 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
+    
+    final authService = context.read<AuthService>();
+    
+    // Check if already loading to prevent multiple attempts
+    if (authService.isLoading) {
+      print('DEBUG UI: Sign in already in progress, ignoring');
+      return;
+    }
+    
+    print('DEBUG UI: Sign in button pressed, AuthService loading: ${authService.isLoading}');
+    
     try {
-      await context.read<AuthService>().signInWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+      print('DEBUG UI: Calling AuthService signIn...');
+      await authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      print('DEBUG UI: AuthService signIn completed successfully');
+
+      if (!mounted) return;
+
+      final currentUser = authService.currentUser;
+      print('DEBUG UI: Current user after login: ${currentUser?.email}');
+      print('DEBUG UI: Is email verified: ${currentUser?.emailVerified}');
+      
+      // Clear the form after successful login
+      _emailController.clear();
+      _passwordController.clear();
+      
     } catch (e) {
+      print('DEBUG UI: AuthService signIn failed with error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(e.toString()), 
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
     return Scaffold(
-      body: Row(
-        children: [
-          // Left: Form
-          Expanded(
-            flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('Sign in', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'By signing in, you agree to the Terms of use and Privacy Policy.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                        ),
-                        const SizedBox(height: 24),
-                        CustomTextField(
-                          controller: _emailController,
-                          label: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                          prefixIcon: Icons.email,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter your email';
-                            final r = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
-                            if (!r.hasMatch(value)) return 'Please enter a valid email';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        CustomTextField(
-                          controller: _passwordController,
-                          label: 'Password',
-                          obscureText: _obscurePassword,
-                          prefixIcon: Icons.lock,
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          ),
-                          validator: (value) => (value == null || value.isEmpty) ? 'Enter your password' : null,
-                        ),
-                        const SizedBox(height: 20),
-                        CustomButton(text: 'Sign in', onPressed: _isLoading ? null : _signIn, isLoading: _isLoading),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+      body: Consumer<AuthService>(
+        builder: (context, authService, child) {
+          // Use AuthService loading state instead of local state
+          final isLoading = authService.isLoading;
+          
+          return Row(
+            children: [
+              // Left: Form
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text("Don't have an account? "),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                                );
+                            Text(
+                              'Sign in', 
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'By signing in, you agree to the Terms of use and Privacy Policy.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            CustomTextField(
+                              controller: _emailController,
+                              label: 'Email',
+                              keyboardType: TextInputType.emailAddress,
+                              prefixIcon: Icons.email,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your email';
+                                }
+                                final r = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+                                if (!r.hasMatch(value)) {
+                                  return 'Please enter a valid email';
+                                }
+                                return null;
                               },
-                              child: const Text('Sign up'),
+                            ),
+                            const SizedBox(height: 14),
+                            CustomTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              obscureText: _obscurePassword,
+                              prefixIcon: Icons.lock,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                ),
+                                onPressed: isLoading ? null : () {
+                                  setState(() => _obscurePassword = !_obscurePassword);
+                                },
+                              ),
+                              validator: (value) => (value == null || value.isEmpty) 
+                                  ? 'Enter your password' 
+                                  : null,
+                            ),
+                            const SizedBox(height: 20),
+                            CustomButton(
+                              text: 'Sign in',
+                              onPressed: isLoading ? null : _signIn,
+                              isLoading: isLoading,
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text("Don't have an account? "),
+                                TextButton(
+                                  onPressed: isLoading ? null : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => const RegisterScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Sign up'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
-          // Right: Brand panel
-          if (MediaQuery.of(context).size.width > 800)
-            Expanded(
-              flex: 1,
-              child: Container(
-                color: const Color(0xFFF5F6FA),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+              // Right: Brand panel
+              if (MediaQuery.of(context).size.width > 800)
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    color: const Color(0xFFF5F6FA),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text('LYFSTYL', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Text('Your all in one media center', style: theme.textTheme.titleLarge),
-                        const SizedBox(height: 12),
-                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _Bullet(text: 'Explore new media', color: Color(0xFF00C2A8)),
-                            _Bullet(text: 'Keep track of your consumption', color: Color(0xFFFF6F61)),
-                            _Bullet(text: 'Share and discover with friends', color: Color(0xFFFFC857)),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Center(
+                                    child: Image.asset(
+                                      'assets/logo.png', 
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'LYFSTYL', 
+                                  style: TextStyle(
+                                    fontSize: 28, 
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'Your all in one media center', 
+                              style: theme.textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 12),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _Bullet(
+                                  text: 'Explore new media', 
+                                  color: Color(0xFF00C2A8),
+                                ),
+                                _Bullet(
+                                  text: 'Keep track of your consumption', 
+                                  color: Color(0xFFFF6F61),
+                                ),
+                                _Bullet(
+                                  text: 'Share and discover with friends', 
+                                  color: Color(0xFFFFC857),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -184,7 +261,14 @@ class _Bullet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+            width: 8, 
+            height: 8, 
+            decoration: BoxDecoration(
+              color: color, 
+              shape: BoxShape.circle,
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
