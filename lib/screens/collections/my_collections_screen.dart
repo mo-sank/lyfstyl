@@ -47,6 +47,9 @@ class _MyCollectionsScreenState extends State<MyCollectionsScreen> {
         case MediaType.book:
           written.add(item);
           break;
+        default:
+          film.add(item);
+          break;
       }
     }
 
