@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class TrendingBooksScreen extends StatefulWidget {
   const TrendingBooksScreen({super.key});
@@ -19,6 +21,23 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
   List<NYTListInfo> _allLists = [];
   List<NYTBook> _displayBooks = [];
   List<NYTBook> _filtered = [];
+
+  Widget _noCoverWidget(NYTBook item) => Container(
+  width: 56,
+  height: 56,
+  decoration: BoxDecoration(
+    color: Colors.grey[300],
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Center(
+    child: Text(
+      item.isbn == null || item.isbn!.isEmpty ? 'No ISBN' : 'No Cover',
+      style: const TextStyle(fontSize: 10, color: Colors.grey),
+      textAlign: TextAlign.center,
+    ),
+  ),
+);
+
 
   @override
   void initState() {
@@ -130,6 +149,42 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
     super.dispose();
   }
 
+  Future<String?> fetchOpenLibraryCoverByTitleAuthor(String title, String author) async {
+  final titleQuery = Uri.encodeComponent(title);
+  final authorQuery = Uri.encodeComponent(author);
+  final url = 'https://openlibrary.org/search.json?title=$titleQuery&author=$authorQuery';
+  final response = await http.get(Uri.parse(url));
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    final docs = data['docs'] as List?;
+    if (docs != null && docs.isNotEmpty) {
+      final doc = docs.first;
+      // Try cover_i first
+      if (doc['cover_i'] != null) {
+        return 'https://covers.openlibrary.org/b/id/${doc['cover_i']}-L.jpg?default=false';
+      }
+      // Try ISBNs from search result
+      if (doc['isbn'] != null && doc['isbn'] is List && doc['isbn'].isNotEmpty) {
+        return 'https://covers.openlibrary.org/b/isbn/${doc['isbn'][0]}-L.jpg?default=false';
+      }
+    }
+  }
+  return null;
+}
+
+Future<String?> getBestCoverUrl(NYTBook item) async {
+  // Try ISBN cover first with default=false
+  if (item.isbn?.isNotEmpty ?? false) {
+    final isbnUrl = 'https://covers.openlibrary.org/b/isbn/${item.isbn}-L.jpg?default=false';
+    final resp = await http.head(Uri.parse(isbnUrl));
+    if (resp.statusCode == 200) {
+      return isbnUrl;
+    }
+  }
+  // Fallback to title/author search
+  return await fetchOpenLibraryCoverByTitleAuthor(item.title, item.author);
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,38 +244,33 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final item = _filtered[index];
+                            if (item.isbn == null || item.isbn!.isEmpty) {
+                              print('No ISBN for book: ${item.title} by ${item.author}');
+                            }
                             return ListTile(
-                              leading: item.coverUrl != null
-                                  ? ClipRRect(
+                              leading: FutureBuilder<String?>(
+                                future: getBestCoverUrl(item),
+                                builder: (context, snapshot) {
+                                  final url = snapshot.data;
+                                  if (url != null) {
+                                    return ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        //TODO fix image
-                                        'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+                                        url,
                                         width: 56,
                                         height: 56,
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            width: 56,
-                                            height: 56,
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[300],
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: const Icon(Icons.book, color: Colors.grey),
-                                          );
+                                          print('Cover failed for ${item.title}: $error');
+                                          return _noCoverWidget(item);
                                         },
                                       ),
-                                    )
-                                  : Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.book, color: Colors.grey),
-                                    ),
+                                    );
+                                  } else {
+                                    return _noCoverWidget(item);
+                                  }
+                                },
+                              ),
                               title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                               subtitle: Text(item.author, maxLines: 1, overflow: TextOverflow.ellipsis),
                               trailing: Row(

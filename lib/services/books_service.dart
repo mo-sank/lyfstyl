@@ -8,14 +8,15 @@ class NYTBook {
   final String description;
   final int rank;
   final String? coverUrl;
+  final String? isbn; // <-- add this
 
   NYTBook({
     required this.title,
     required this.author,
     required this.description,
     required this.rank,
-    this.coverUrl
-
+    this.coverUrl,
+    this.isbn,
   });
 
   factory NYTBook.fromJson(Map<String, dynamic> json) => NYTBook(
@@ -23,7 +24,8 @@ class NYTBook {
     author: json['author'],
     description: json['description'],
     rank: json['rank'],
-    coverUrl: json['coverUrl']
+    coverUrl: json['book_image'],
+    isbn: json['primary_isbn13'] ?? json['primary_isbn10'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +68,7 @@ class NYTOverview {
         description: book['description'],
         coverUrl: book['book_image'],
         rank: book['rank'],
+        isbn: book['primary_isbn13'] ?? book['primary_isbn10'], // <-- ADD THIS LINE
       )).toList();
       return NYTListInfo(
         listName: list['list_name_encoded'],
@@ -121,7 +124,8 @@ class BooksService {
             author: book['author'],
             description: book['description'],
             coverUrl: book['book_image'],
-            rank: book['rank']
+            rank: book['rank'],
+            isbn: book['primary_isbn13'] ?? book['primary_isbn10'],
           ));
         }
       }
@@ -158,6 +162,12 @@ class BooksService {
       throw Exception('Failed to load overview');
     }
   }
+
+
+
+/// Returns a Google Books thumbnail URL for the given title/author, or null if not found.
+
+
 }
 
 void main() async {
