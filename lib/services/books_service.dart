@@ -1,21 +1,26 @@
+// NYT Bestselling Books API Methods
+// Cami Krugel
+// 4 Hours
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+/*
+  NYTBook: Represents a book ranked in NYT
+*/
 class NYTBook {
   final String title;
   final String author;
   final String description;
   final int rank;
-  final String? coverUrl;
-  final String? isbn; // <-- add this
+  final String? isbn;
 
   NYTBook({
     required this.title,
     required this.author,
     required this.description,
     required this.rank,
-    this.coverUrl,
     this.isbn,
   });
 
@@ -24,19 +29,21 @@ class NYTBook {
     author: json['author'],
     description: json['description'],
     rank: json['rank'],
-    coverUrl: json['book_image'],
-    isbn: json['primary_isbn13'] ?? json['primary_isbn10'],
+    isbn: json['primary_isbn13'] ?? json['primary_isbn10'], // Prefer isbn 13
   );
 
   Map<String, dynamic> toJson() => {
     'title': title,
     'author': author,
     'description': description,
-    'coverUrl': coverUrl,
-    'rank': rank
+    'rank': rank,
+    'isbn': isbn
   };
 }
 
+/*
+  Represents one of the NYT beststeller lists
+*/
 class NYTListInfo {
   final String listName;
   final String displayName;
@@ -49,7 +56,9 @@ class NYTListInfo {
   });
 }
 
-class NYTOverview {
+/*
+  Represents one of published dates
+*/class NYTOverview {
   final String publishedDate;
   final String? previousPublishedDate;
   final List<NYTListInfo> lists;
@@ -66,9 +75,8 @@ class NYTOverview {
         title: book['title'],
         author: book['author'],
         description: book['description'],
-        coverUrl: book['book_image'],
         rank: book['rank'],
-        isbn: book['primary_isbn13'] ?? book['primary_isbn10'], // <-- ADD THIS LINE
+        isbn: book['primary_isbn13'] ?? book['primary_isbn10'], 
       )).toList();
       return NYTListInfo(
         listName: list['list_name_encoded'],
@@ -85,6 +93,7 @@ class NYTOverview {
 }
 
 class BooksService {
+  //TODO remove hard coding
   static const String _apiKey = 'rDldRaR8evRrwrUCMqSZpPcTeANcR9Wp';
   static const String _baseUrl = 'https://api.nytimes.com/svc/books/v3';
   static const String _cacheKey = 'trending_books_cache';
@@ -101,9 +110,10 @@ class BooksService {
     final lastWednesday = now.subtract(Duration(days: (now.weekday + 4) % 7));
     final isFresh = lastFetch != null && lastFetch.isAfter(lastWednesday);
 
-    if (isFresh) {
+    if (isFresh) { 
       final cached = prefs.getString(_cacheKey);
       if (cached != null) {
+        // Do not need to pull from API again
         final List decoded = json.decode(cached);
         return decoded.map((e) => NYTBook.fromJson(e)).toList();
       }
@@ -123,7 +133,6 @@ class BooksService {
             title: book['title'],
             author: book['author'],
             description: book['description'],
-            coverUrl: book['book_image'],
             rank: book['rank'],
             isbn: book['primary_isbn13'] ?? book['primary_isbn10'],
           ));
@@ -152,8 +161,6 @@ class BooksService {
       '${publishedDate != null ? '&published_date=$publishedDate' : ''}'
     );
     final response = await http.get(url);
-    print('NYT API status: ${response.statusCode}');
-    print('NYT API body: ${response.body}');
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       prefs.setString(cacheKey, json.encode(data));
@@ -163,11 +170,117 @@ class BooksService {
     }
   }
 
+  Future<List<Book>> fetchBooks(String title, String author, String subject) async {
+    final titleQuery = Uri.encodeComponent(title);
+    final authorQuery = Uri.encodeComponent(author);
+    final subjectQuery = Uri.encodeComponent(subject);
+    String url = 'https://openlibrary.org/search.json?language=eng&';
+    if (title.isNotEmpty) url += 'title=$titleQuery&';
+    if (author.isNotEmpty) url += 'author=$authorQuery&';
+    if (subject.isNotEmpty) url += 'subject=$subjectQuery&';
 
+    final response = await http.get(Uri.parse(url));
+    final List<Book> possibleBooks = List.empty(growable: true);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final docs = data['docs'] as List;
+      for (var doc in docs) {
+        if (doc != null) {
+          Book book = Book.fromSearchJson(doc);
+          possibleBooks.add(book);
+        }
+      }
+    }
+    return possibleBooks;
+  }
 
-/// Returns a Google Books thumbnail URL for the given title/author, or null if not found.
+  Future<Book?> bookDetails(String id) async {
+    final url = 'https://openlibrary.org/books/$id.json';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data != null) {
+        final book = Book.fromEditionJson(data);
+        return book;
+      }
+    }
+    return null;
+  }
 
+  Future<List<String>> fetchAuthorNames(List authors) async {
+    List<String> names = [];
+    for (var author in authors) {
+      final key = author['key'];
+      final response = await http.get(Uri.parse('https://openlibrary.org$key.json'));
+      if (response.statusCode == 200) {
+        final authorData = json.decode(response.body);
+        if (authorData['name'] != null) names.add(authorData['name']);
+      }
+    }
+    return names;
+  }
+}
 
+class Book {
+  final String title;
+  final List<String> authors;
+  final String id; // OLID
+  final List<String>? publishers;
+  final List<String>? isbn10;
+  final List<String>? isbn13;
+  final String? publishDate;
+  final int? pages;
+  final List<String>? subjects;
+  final String? weight;
+
+  Book({
+    required this.title,
+    required this.authors,
+    required this.id,
+    this.publishers,
+    this.isbn10,
+    this.isbn13,
+    this.publishDate,
+    this.pages,
+    this.subjects,
+    this.weight,
+  });
+
+  // From search.json
+  factory Book.fromSearchJson(Map<String, dynamic> json) {
+    String? id = json['cover_edition_key'];
+    if (id == null && json['edition_key'] != null && json['edition_key'] is List && json['edition_key'].isNotEmpty) {
+      id = json['edition_key'][0];
+    }
+    return Book(
+      title: json['title'] ?? '',
+      authors: (json['author_name'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      id: id ?? '',
+      publishers: (json['publisher'] as List?)?.map((e) => e.toString()).toList(),
+      isbn10: (json['isbn_10'] as List?)?.map((e) => e.toString()).toList(),
+      isbn13: (json['isbn_13'] as List?)?.map((e) => e.toString()).toList(),
+      publishDate: json['first_publish_year']?.toString(),
+      pages: null, // Not available in search.json
+      subjects: (json['subject'] as List?)?.map((e) => e.toString()).toList(),
+      weight: null,
+    );
+  }
+
+  // From books/{OLID}.json
+  factory Book.fromEditionJson(Map<String, dynamic> json) {
+    return Book(
+      title: json['title'] ?? '',
+      authors: [], // You can fetch author names separately if needed
+      id: json['key'] != null ? (json['key'] as String).replaceAll('/books/', '') : '',
+      publishers: (json['publishers'] as List?)?.map((e) => e.toString()).toList(),
+      isbn10: (json['isbn_10'] as List?)?.map((e) => e.toString()).toList(),
+      isbn13: (json['isbn_13'] as List?)?.map((e) => e.toString()).toList(),
+      publishDate: json['publish_date'],
+      pages: json['number_of_pages'],
+      subjects: (json['subjects'] as List?)?.map((e) => e.toString()).toList(),
+      weight: json['weight'],
+    );
+  }
 }
 
 void main() async {

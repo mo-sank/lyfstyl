@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lyfstyl/screens/trending/trending_books_screen.dart';
+import 'package:lyfstyl/screens/trending/search_filter_books_screen.dart';
+import 'package:lyfstyl/screens/trending/books_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
@@ -745,14 +747,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   _buildDrawerItem(
                     icon: Icons.trending_up,
-                    title: 'Trending Books',
+                    title: 'Discover Books',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TrendingBooksScreen()),
+                        MaterialPageRoute(builder: (_) => const BooksScreen()),
                       );
                     },
                   ),
+                                   
                   const Divider(),
                   _buildDrawerItem(
                     icon: Icons.settings,

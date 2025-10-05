@@ -1,3 +1,7 @@
+// Trending Books
+// Cami Krugel
+// 5 Hours
+
 import 'package:flutter/material.dart';
 import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
@@ -13,7 +17,7 @@ class TrendingBooksScreen extends StatefulWidget {
 
 class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
   final TextEditingController _keywordsCtrl = TextEditingController();
-  late BooksService _service;
+  final BooksService _service = BooksService();
   Future<NYTOverview>? _futureOverview;
   String? _selectedDate;
   String? _selectedListName;
@@ -42,7 +46,6 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
   @override
   void initState() {
     super.initState();
-    _service = BooksService();
     _initDatesAndOverview();
     _keywordsCtrl.addListener(_applyFilter);
   }
@@ -119,6 +122,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
         .toList();
     setState(() {
       _filtered = ks.isEmpty
+
           ? _displayBooks
           : _displayBooks.where((item) =>
               ks.any((k) =>
@@ -188,7 +192,7 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Trending • Books')),
+      appBar: AppBar(title: const Text('Trending Books')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<NYTOverview>(
@@ -288,6 +292,131 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
                                   ),
                                 ],
                               ),
+                              onTap: () async {
+                                // Use title and author to search Open Library
+                                final books = await _service.fetchBooks(item.title, item.author, '');
+                                if (books.isNotEmpty && context.mounted) {
+                                  final book = books.first;
+                                  // Optionally, fetch edition details for more fields:
+                                  final details = await _service.bookDetails(book.id);
+                                  final bookToShow = details ?? book;
+
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: Text(
+                                        bookToShow.title.isNotEmpty ? bookToShow.title : item.title,
+                                      ),
+                                      content: SingleChildScrollView(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            if (bookToShow.id.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 12.0),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    'https://covers.openlibrary.org/b/olid/${bookToShow.id}-L.jpg?default=false',
+                                                    width: 120,
+                                                    height: 180,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 120,
+                                                        height: 180,
+                                                        color: Colors.grey[300],
+                                                        child: const Icon(Icons.book, color: Colors.grey, size: 48),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                            // Authors: fallback to NYT if Open Library is empty
+                                            if (bookToShow.authors.isNotEmpty)
+                                              Text('Authors: ${bookToShow.authors.join(", ")}')
+                                            else if (item.author.isNotEmpty)
+                                              Text('Authors: ${item.author}'),
+                                            if (bookToShow.publishers != null)
+                                              Text('Publishers: ${bookToShow.publishers!.join(", ")}'),
+                                            if (bookToShow.publishDate != null)
+                                              Text('Published: ${bookToShow.publishDate}'),
+                                            if (bookToShow.pages != null)
+                                              Text('Pages: ${bookToShow.pages}'),
+                                            if (bookToShow.subjects != null)
+                                              Text('Subjects: ${bookToShow.subjects!.join(", ")}'),
+                                            if (bookToShow.weight != null)
+                                              Text('Weight: ${bookToShow.weight}'),
+                                            if (bookToShow.isbn13 != null)
+                                              Text('ISBN-13: ${bookToShow.isbn13!.join(", ")}'),
+                                            if (bookToShow.isbn10 != null)
+                                              Text('ISBN-10: ${bookToShow.isbn10!.join(", ")}'),
+                                            // NYT Description fallback
+                                            if ((bookToShow.subjects == null || bookToShow.subjects!.isEmpty) && item.description.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 8.0),
+                                                child: Text('Description: ${item.description}'),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('Close'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop(); // Close the dialog
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => AddLogScreen(
+                                                  preFilledData: {
+                                                    'title': bookToShow.title.isNotEmpty ? bookToShow.title : item.title,
+                                                    'type': 'book',
+                                                    'creator': (bookToShow.authors.isNotEmpty
+                                                        ? bookToShow.authors.join(', ')
+                                                        : item.author),
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text('Add Log'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else {
+                                  // Optionally show a message if no Open Library match found
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: Text(item.title),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (item.author.isNotEmpty)
+                                            Text('Authors: ${item.author}'),
+                                          if (item.description.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 8.0),
+                                              child: Text('Description: ${item.description}'),
+                                            ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
+
                             );
                           },
                         ),
