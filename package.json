@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Lyfstyl - An all-in-one media logger and discovery web app",
   "scripts": {
-    "build": "echo 'No build step needed for API-only deployment'",
-    "dev": "echo 'Run flutter build web locally, then deploy'"
+    "build": "flutter build web --release",
+    "dev": "flutter run -d web-server --web-port 3000"
   },
   "dependencies": {
     "firebase": "^10.14.1"

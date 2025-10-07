@@ -1,13 +1,11 @@
 {
   "version": 2,
+  "buildCommand": "flutter build web --release",
+  "outputDirectory": "build/web",
   "builds": [
     {
       "src": "api/**/*.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "build/web/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -17,7 +15,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/build/web/$1"
+      "dest": "/index.html"
     }
   ],
   "crons": [
