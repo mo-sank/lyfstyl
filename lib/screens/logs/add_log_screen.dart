@@ -22,10 +22,22 @@ class _AddLogScreenState extends State<AddLogScreen> {
   final _creatorCtrl = TextEditingController();
   final _tagsCtrl = TextEditingController();
   final _reviewCtrl = TextEditingController();
+  final _playCountCtrl = TextEditingController();
+  final _albumCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController();
+  final _genresCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
   MediaType _type = MediaType.film;
   double? _rating;
   DateTime _consumedAt = DateTime.now();
   bool _saving = false;
+  
+  // Music-specific fields
+  int? _durationSeconds;
+  int? _playCount;
+  String? _album;
+  List<String> _genres = [];
+  int? _year;
 
   @override
   void initState() {
@@ -44,6 +56,22 @@ class _AddLogScreenState extends State<AddLogScreen> {
       switch (typeString) {
         case 'music':
           _type = MediaType.music;
+          // Pre-fill music-specific data if available
+          if (data['musicData'] != null) {
+            final musicData = data['musicData'] as Map<String, dynamic>;
+            _album = musicData['album'] as String?;
+            _genres = (musicData['genres'] as List<dynamic>? ?? []).cast<String>();
+            _year = musicData['year'] as int?;
+            _durationSeconds = musicData['durationSeconds'] as int?;
+            _playCount = musicData['playCount'] as int? ?? 1;
+            
+            // Update controllers
+            _albumCtrl.text = _album ?? '';
+            _genresCtrl.text = _genres.join(', ');
+            _yearCtrl.text = _year?.toString() ?? '';
+            _playCountCtrl.text = _playCount.toString();
+            _durationCtrl.text = _durationSeconds != null ? _formatDuration(_durationSeconds!) : '';
+          }
           break;
         case 'book':
           _type = MediaType.book;
@@ -56,24 +84,43 @@ class _AddLogScreenState extends State<AddLogScreen> {
     }
   }
 
+// Make sure form is valid before saving in its current state
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
     try {
+      // Getting firestore service from our backend
       final svc = context.read<FirestoreService>();
       final media = await svc.getOrCreateMedia(
         title: _titleCtrl.text.trim(),
         type: _type,
         creator: _creatorCtrl.text.trim().isEmpty ? null : _creatorCtrl.text.trim(),
       );
-
+      // Getting user ID and filling out the log entry data
       final userId = FirebaseAuth.instance.currentUser!.uid;
       final now = DateTime.now();
+      
+      // Create consumption data based on media type
+      Map<String, dynamic> consumptionData = {};
+      
+      if (_type == MediaType.music) {
+        final musicData = MusicConsumptionData(
+          durationSeconds: _durationSeconds,
+          playCount: _playCount,
+          album: _album,
+          artist: _creatorCtrl.text.trim(),
+          genres: _genres,
+          year: _year,
+        );
+        consumptionData = musicData.toMap();
+      }
+      
       final log = LogEntry(
         logId: 'temp',
         userId: userId,
         mediaId: media.mediaId,
+        mediaType: _type,
         rating: _rating,
         review: _reviewCtrl.text.trim().isEmpty ? null : _reviewCtrl.text.trim(),
         tags: _tagsCtrl.text
@@ -84,8 +131,9 @@ class _AddLogScreenState extends State<AddLogScreen> {
         consumedAt: _consumedAt,
         createdAt: now,
         updatedAt: now,
+        consumptionData: consumptionData,
       );
-
+      // Creating log in firestore
       await svc.createLog(log);
 
       if (!mounted) return;
@@ -103,12 +151,140 @@ class _AddLogScreenState extends State<AddLogScreen> {
     }
   }
 
+  Widget _buildMusicSpecificFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Music Details',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        // Album Field - Always show, editable
+        CustomTextField(
+          controller: _albumCtrl,
+          label: 'Album (optional)',
+          onChanged: (value) => _album = value.trim().isEmpty ? null : value.trim(),
+        ),
+        const SizedBox(height: 12),
+        
+        // Duration Field - Always show, editable
+        Row(
+          children: [
+            Expanded(
+              child: CustomTextField(
+                controller: _durationCtrl,
+                label: 'Duration (e.g., 3:45)',
+                onChanged: (value) {
+                  _durationSeconds = _parseDuration(value);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.timer),
+              onPressed: () {
+                // Could add a duration picker here
+              },
+              tooltip: 'Duration picker',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        // Play Count Field - Always show
+        CustomTextField(
+          controller: _playCountCtrl,
+          label: 'How many times did you listen?',
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value != null && value.isNotEmpty) {
+              final count = int.tryParse(value);
+              if (count == null || count < 1) {
+                return 'Enter a valid number (1 or more)';
+              }
+            }
+            return null;
+          },
+          onChanged: (value) {
+            _playCount = int.tryParse(value);
+          },
+        ),
+        const SizedBox(height: 12),
+        
+        // Genres Field - Always show, editable
+        CustomTextField(
+          controller: _genresCtrl,
+          label: 'Genres (comma separated)',
+          onChanged: (value) {
+            _genres = value
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
+          },
+        ),
+        const SizedBox(height: 12),
+        
+        // Year Field - Always show, editable
+        CustomTextField(
+          controller: _yearCtrl,
+          label: 'Release Year (optional)',
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            _year = int.tryParse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  int? _parseDuration(String durationText) {
+    if (durationText.trim().isEmpty) return null;
+    
+    // Parse formats like "3:45", "3:45:30", "45" (seconds)
+    final parts = durationText.split(':');
+    if (parts.length == 1) {
+      // Just seconds
+      return int.tryParse(parts[0]);
+    } else if (parts.length == 2) {
+      // Minutes:Seconds
+      final minutes = int.tryParse(parts[0]) ?? 0;
+      final seconds = int.tryParse(parts[1]) ?? 0;
+      return minutes * 60 + seconds;
+    } else if (parts.length == 3) {
+      // Hours:Minutes:Seconds
+      final hours = int.tryParse(parts[0]) ?? 0;
+      final minutes = int.tryParse(parts[1]) ?? 0;
+      final seconds = int.tryParse(parts[2]) ?? 0;
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+    return null;
+  }
+
+  String _formatDuration(int seconds) {
+    final duration = Duration(seconds: seconds);
+    if (duration.inHours > 0) {
+      return '${duration.inHours}:${(duration.inMinutes % 60).toString().padLeft(2, '0')}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
+    } else {
+      return '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
+    }
+  }
+
   @override
   void dispose() {
     _titleCtrl.dispose();
     _creatorCtrl.dispose();
     _tagsCtrl.dispose();
     _reviewCtrl.dispose();
+    _playCountCtrl.dispose();
+    _albumCtrl.dispose();
+    _durationCtrl.dispose();
+    _genresCtrl.dispose();
+    _yearCtrl.dispose();
     super.dispose();
   }
 
@@ -125,10 +301,13 @@ class _AddLogScreenState extends State<AddLogScreen> {
               DropdownButtonFormField<MediaType>(
                 value: _type,
                 items: MediaType.values
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
+                    .map((t) => DropdownMenuItem(
+                          value: t, 
+                          child: Text(t.name.toUpperCase()),
+                        ))
                     .toList(),
                 onChanged: (v) => setState(() => _type = v ?? MediaType.film),
-                decoration: const InputDecoration(labelText: 'Type'),
+                decoration: const InputDecoration(labelText: 'Media Type'),
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -139,9 +318,16 @@ class _AddLogScreenState extends State<AddLogScreen> {
               const SizedBox(height: 12),
               CustomTextField(
                 controller: _creatorCtrl,
-                label: 'Creator (optional)',
+                label: _type == MediaType.music ? 'Artist' : 
+                       _type == MediaType.book ? 'Author' : 'Director',
               ),
               const SizedBox(height: 12),
+              
+              // Music-specific fields
+              if (_type == MediaType.music) ...[
+                _buildMusicSpecificFields(),
+                const SizedBox(height: 12),
+              ],
               InputDecorator(
                 decoration: const InputDecoration(labelText: 'Rating (optional)', border: OutlineInputBorder()),
                 child: Slider(

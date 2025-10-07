@@ -3,12 +3,16 @@ import 'package:lyfstyl/screens/trending/trending_books_screen.dart';
 import 'package:lyfstyl/screens/trending/search_filter_books_screen.dart';
 import 'package:lyfstyl/screens/trending/books_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../services/stats_service.dart';
 import 'auth/login_screen.dart';
 import 'profile/profile_screen.dart';
 import 'logs/add_log_screen.dart';
 import 'collections/my_collections_screen.dart';
 import 'trending/trending_music_screen.dart';
+import 'music/music_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -420,6 +424,74 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          
+          // Search Music Card
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(
+                minHeight: 100,
+                maxHeight: 120,
+              ),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Search Music',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Find and log your favorite songs',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          
           // Filter buttons
           Row(
             children: [
@@ -736,6 +808,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _buildDrawerItem(
+                    icon: Icons.analytics,
+                    title: 'My Stats',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showStatsDialog(context);
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.search,
+                    title: 'Search Music',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
                     icon: Icons.trending_up,
                     title: 'Trending Music',
                     onTap: () {
@@ -825,6 +915,96 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     }
+  }
+
+  Future<void> _showStatsDialog(BuildContext context) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final svc = context.read<FirestoreService>();
+      final statsService = StatsService();
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // Fetch logs and calculate stats
+      final logs = await svc.getUserLogs(uid, limit: 1000);
+      final stats = statsService.calculateUserStats(logs);
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+      
+      // Show stats dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Your Stats'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatRow('Total Items Logged', stats.totalItemsLogged.toString()),
+                if (stats.totalMusicMinutes > 0)
+                  _buildStatRow('Total Music Time', statsService.formatDuration(stats.totalMusicMinutes)),
+                if (stats.averageRating > 0)
+                  _buildStatRow('Average Rating', stats.averageRating.toStringAsFixed(1)),
+                if (stats.topGenres.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('Top Genres:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ...stats.topGenres.take(3).map((genre) => 
+                    Text('• $genre (${stats.genreCounts[genre]} items)')
+                  ),
+                ],
+                if (stats.topArtists.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('Top Artists:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ...stats.topArtists.take(3).map((artist) => 
+                    Text('• $artist (${stats.artistCounts[artist]} songs)')
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Close loading dialog if open
+      Navigator.of(context).pop();
+      
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading stats: $e')),
+      );
+    }
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum MediaType { film, book, show, album, song, music }
+enum MediaType { film, book, music }
 
 enum MediaSource { manual, letterboxd, goodreads, spotify, other }
 
@@ -81,12 +81,6 @@ class MediaItem {
         return MediaType.film;
       case 'book':
         return MediaType.book;
-      case 'album':
-        return MediaType.album;
-      case 'song':
-        return MediaType.song;
-      case 'show':
-        return MediaType.show;
       case 'music':
         return MediaType.music;
       default:

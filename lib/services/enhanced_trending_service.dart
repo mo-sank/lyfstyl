@@ -1,7 +1,8 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/enhanced_log_entry.dart';
 
-class TrendingItem {
+class EnhancedTrendingItem {
   final String id;
   final String type; // music
   final String title;
@@ -12,9 +13,9 @@ class TrendingItem {
   final double score;
   
   // Rich music data for logging
-  final Map<String, dynamic> musicData;
+  final MusicConsumptionData musicData;
 
-  TrendingItem({
+  EnhancedTrendingItem({
     required this.id,
     required this.type,
     required this.title,
@@ -23,17 +24,17 @@ class TrendingItem {
     this.previewUrl,
     required this.sources,
     required this.score,
-    this.musicData = const {},
+    required this.musicData,
   });
 }
 
-class TrendingService {
+class EnhancedTrendingService {
   // Last.fm API key - direct API approach (FREE!)
   static const String _lastfmApiKey = 'a56da6ca8f0fcd0d15dc18e43be048c9';
   static const String _lastfmBaseUrl = 'https://ws.audioscrobbler.com/2.0/';
 
-  // Get trending music directly from Last.fm (FREE!)
-  Future<List<TrendingItem>> getLatestMusic({int limit = 20}) async {
+  // Get trending music with rich data for logging
+  Future<List<EnhancedTrendingItem>> getLatestMusic({int limit = 20}) async {
     try {
       // Use chart.getTopTracks with extended info for better cover art
       final response = await http.get(
@@ -45,19 +46,19 @@ class TrendingService {
         final tracks = data['tracks']['track'] as List;
         
         // Fetch additional track info for rich data
-        final List<TrendingItem> items = [];
+        final List<EnhancedTrendingItem> items = [];
         for (final track in tracks) {
-          final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
-          items.add(TrendingItem(
+          final musicData = await _getRichTrackData(track['name'], track['artist']['name']);
+          items.add(EnhancedTrendingItem(
             id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
             type: 'music',
             title: track['name'] ?? '',
             artist: track['artist']['name'] ?? '',
-            coverUrl: trackInfo['coverUrl'],
+            coverUrl: musicData.coverUrl,
             previewUrl: null,
             sources: ['lastfm'],
             score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),
-            musicData: trackInfo,
+            musicData: musicData,
           ));
         }
         
@@ -70,8 +71,8 @@ class TrendingService {
     return [];
   }
 
-  // Get additional track info including better cover art and rich data
-  Future<Map<String, dynamic>> _getTrackInfo(String trackName, String artistName) async {
+  // Get rich track data including duration, genres, and other metadata
+  Future<MusicConsumptionData> _getRichTrackData(String trackName, String artistName) async {
     try {
       final response = await http.get(
         Uri.parse('$_lastfmBaseUrl?method=track.getInfo&api_key=$_lastfmApiKey&artist=${Uri.encodeComponent(artistName)}&track=${Uri.encodeComponent(trackName)}&format=json'),
@@ -80,10 +81,12 @@ class TrendingService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final track = data['track'];
+        
         if (track != null) {
+          // Extract album info
           final album = track['album'];
-          String? coverUrl;
           String? albumName;
+          String? coverUrl;
           
           if (album != null) {
             albumName = album['title'] as String?;
@@ -134,22 +137,27 @@ class TrendingService {
           // Extract MBID
           String? mbid = track['mbid'] as String?;
 
-          return {
-            'coverUrl': coverUrl,
-            'album': albumName,
-            'genres': genres,
-            'durationSeconds': durationSeconds,
-            'year': year,
-            'playCount': playCount,
-            'mbid': mbid,
-          };
+          return MusicConsumptionData(
+            durationSeconds: durationSeconds,
+            playCount: playCount,
+            album: albumName,
+            artist: artistName,
+            genres: genres,
+            year: year,
+            mbid: mbid,
+            // Note: Last.fm doesn't provide audio features like energy, danceability, etc.
+            // These would need to be fetched from Spotify API or similar
+          );
         }
       }
     } catch (e) {
-      print('Error fetching track info: $e');
+      print('Error fetching rich track data: $e');
     }
     
-    return {'coverUrl': null};
+    return MusicConsumptionData(
+      artist: artistName,
+      genres: [],
+    );
   }
 
   String? _getImageUrl(List<dynamic>? images) {
@@ -171,54 +179,38 @@ class TrendingService {
     return null;
   }
 
-  // Search for music using Last.fm API
-  Future<List<TrendingItem>> searchMusic(String query, {int limit = 20}) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_lastfmBaseUrl?method=track.search&api_key=$_lastfmApiKey&track=${Uri.encodeComponent(query)}&format=json&limit=$limit'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final searchResults = data['results']['trackmatches']['track'];
-        
-        if (searchResults == null) return [];
-        
-        final tracks = searchResults is List ? searchResults : [searchResults];
-        
-        // Fetch additional track info for rich data
-        final List<TrendingItem> items = [];
-        for (final track in tracks) {
-          final trackInfo = await _getTrackInfo(track['name'], track['artist']);
-          items.add(TrendingItem(
-            id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            type: 'music',
-            title: track['name'] ?? '',
-            artist: track['artist'] ?? '',
-            coverUrl: trackInfo['coverUrl'],
-            previewUrl: null,
-            sources: ['lastfm'],
-            score: 0.0, // Search results don't have play counts
-            musicData: trackInfo,
-          ));
-        }
-        
-        return items;
-      }
-    } catch (e) {
-      print('Error searching music: $e');
-    }
-    
-    return [];
-  }
-
   // Filter trending items by keywords
-  List<TrendingItem> filterByKeywords(List<TrendingItem> items, List<String> keywords) {
+  List<EnhancedTrendingItem> filterByKeywords(List<EnhancedTrendingItem> items, List<String> keywords) {
     if (keywords.isEmpty) return items;
     final ks = keywords.map((k) => k.toLowerCase().trim()).where((k) => k.isNotEmpty).toList();
     return items.where((i) {
-      final hay = '${i.title} ${i.artist}'.toLowerCase();
+      final hay = '${i.title} ${i.artist} ${i.musicData.genres.join(' ')}'.toLowerCase();
       return ks.any((k) => hay.contains(k));
     }).toList();
+  }
+
+  // Helper method to create a log entry from trending item
+  LogEntry createLogFromTrendingItem({
+    required String userId,
+    required EnhancedTrendingItem item,
+    double? rating,
+    String? review,
+    List<String> tags = const [],
+    DateTime? consumedAt,
+  }) {
+    final now = DateTime.now();
+    return LogEntry(
+      logId: 'temp', // Will be set by Firestore
+      userId: userId,
+      mediaId: item.id,
+      mediaType: MediaType.music,
+      rating: rating,
+      review: review,
+      tags: tags,
+      consumedAt: consumedAt ?? now,
+      createdAt: now,
+      updatedAt: now,
+      consumptionData: item.musicData.toMap(),
+    );
   }
 }
