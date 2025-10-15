@@ -13,8 +13,22 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   late TrendingService _service;
   Future<List<TrendingItem>>? _searchFuture;
+  Future<List<TrendingItem>>? _genreFuture;
   List<TrendingItem> _searchResults = [];
+  List<TrendingItem> _genreResults = [];
   bool _isSearching = false;
+  bool _isLoadingGenre = false;
+  
+  // Mode: 'search' or 'browse'
+  String _currentMode = 'browse';
+  String? _selectedGenre;
+  
+  // Popular genres for browsing
+  static const List<String> _popularGenres = [
+    'pop', 'rock', 'hip hop', 'country', 'jazz', 'blues', 'classical',
+    'electronic', 'folk', 'reggae', 'r&b', 'soul', 'funk', 'disco',
+    'punk', 'metal', 'indie', 'alternative', 'latin', 'world'
+  ];
 
   @override
   void initState() {
@@ -27,6 +41,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     
     setState(() {
       _isSearching = true;
+      _currentMode = 'search';
       _searchFuture = _performSearch();
     });
   }
@@ -42,6 +57,46 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     } finally {
       setState(() => _isSearching = false);
     }
+  }
+
+  Future<void> _browseByGenre(String genre) async {
+    setState(() {
+      _isLoadingGenre = true;
+      _currentMode = 'browse';
+      _selectedGenre = genre;
+      _genreFuture = _performGenreBrowse(genre);
+    });
+  }
+
+  Future<List<TrendingItem>> _performGenreBrowse(String genre) async {
+    try {
+      // Use the new dedicated genre method
+      final results = await _service.getMusicByGenre(genre, limit: 30);
+      _genreResults = results;
+      return results;
+    } catch (e) {
+      print('Genre browse error: $e');
+      return [];
+    } finally {
+      setState(() => _isLoadingGenre = false);
+    }
+  }
+
+  void _switchToBrowse() {
+    setState(() {
+      _currentMode = 'browse';
+      _searchCtrl.clear();
+      _searchResults = [];
+      _searchFuture = null;
+    });
+  }
+
+  void _switchToSearch() {
+    setState(() {
+      _currentMode = 'search';
+      _genreResults = [];
+      _genreFuture = null;
+    });
   }
 
   void _logSearchResult(BuildContext context, TrendingItem item) {
@@ -69,17 +124,114 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Music'),
+        title: const Text('Discover Music'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0.5,
       ),
       body: Column(
         children: [
-          // Search Section
+          // Mode Toggle
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[50],
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildModeButton('browse', 'Browse by Genre', Icons.category),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildModeButton('search', 'Search Specific', Icons.search),
+                ),
+              ],
+            ),
+          ),
+          
+          // Content based on mode
+          if (_currentMode == 'browse') _buildBrowseContent(),
+          if (_currentMode == 'search') _buildSearchContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeButton(String mode, String label, IconData icon) {
+    final isSelected = _currentMode == mode;
+    return ElevatedButton(
+      onPressed: () {
+        if (mode == 'browse') {
+          _switchToBrowse();
+        } else {
+          _switchToSearch();
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? Colors.blue : Colors.grey[200],
+        foregroundColor: isSelected ? Colors.white : Colors.grey[700],
+        elevation: isSelected ? 2 : 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBrowseContent() {
+    return Expanded(
+      child: Column(
+        children: [
+          // Genre Selection
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose a genre to discover music',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _popularGenres.map((genre) {
+                    return _buildGenreChip(genre);
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          
+          // Results
+          Expanded(
+            child: _buildBrowseResults(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchContent() {
+    return Expanded(
+      child: Column(
+        children: [
+          // Search Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
             child: Column(
               children: [
                 Row(
@@ -106,7 +258,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Colors.grey[50],
                         ),
                         onSubmitted: (_) => _searchMusic(),
                         onChanged: (value) => setState(() {}),
@@ -137,7 +289,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Search by song title, artist name, or album name',
+                  'Search for specific songs, artists, or albums',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -146,16 +298,160 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             ),
           ),
           
-          // Results Section
+          // Search Results
           Expanded(
-            child: _buildResults(),
+            child: _buildSearchResults(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResults() {
+  Widget _buildGenreChip(String genre) {
+    return ActionChip(
+      label: Text(genre.toUpperCase()),
+      onPressed: () => _browseByGenre(genre),
+      backgroundColor: Colors.blue[50],
+      labelStyle: TextStyle(
+        color: Colors.blue[800],
+        fontWeight: FontWeight.w500,
+      ),
+      avatar: const Icon(Icons.music_note, size: 16, color: Colors.blue),
+    );
+  }
+
+  Widget _buildBrowseResults() {
+    if (_genreFuture == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.category,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Choose a genre to discover music',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap any genre above to see trending and popular music',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return FutureBuilder<List<TrendingItem>>(
+      future: _genreFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting || _isLoadingGenre) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _browseByGenre('pop'), // Retry with pop
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        final results = snapshot.data ?? [];
+        
+        if (results.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.music_off, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No music found for this genre',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try selecting a different genre',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        return Column(
+          children: [
+            // Genre header
+            if (_selectedGenre != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue[50],
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.music_note, color: Colors.blue[800]),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_selectedGenre!.toUpperCase()} Music',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.blue[800],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${results.length} songs - trending and popular',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Results list
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: results.length,
+                itemBuilder: (context, index) {
+                  final item = results[index];
+                  return _buildSearchResultCard(item);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchResults() {
     if (_searchFuture == null) {
       return Center(
         child: Column(
@@ -168,7 +464,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Search for music',
+              'Search for specific music',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Colors.grey[600],
               ),
@@ -246,6 +542,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       },
     );
   }
+
 
   Widget _buildSearchResultCard(TrendingItem item) {
     return Card(

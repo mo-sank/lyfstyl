@@ -212,6 +212,115 @@ class TrendingService {
     return [];
   }
 
+  // Get music by genre - both trending and popular
+  Future<List<TrendingItem>> getMusicByGenre(String genre, {int limit = 30}) async {
+    try {
+      final List<TrendingItem> allResults = [];
+      
+      // Get trending tracks in this genre
+      final trendingResults = await _getTrendingByGenre(genre, limit: limit ~/ 2);
+      allResults.addAll(trendingResults);
+      
+      // Get popular tracks in this genre
+      final popularResults = await _getPopularByGenre(genre, limit: limit ~/ 2);
+      allResults.addAll(popularResults);
+      
+      // Remove duplicates based on track name and artist
+      final uniqueResults = <String, TrendingItem>{};
+      for (final item in allResults) {
+        final key = '${item.title.toLowerCase()}_${item.artist.toLowerCase()}';
+        if (!uniqueResults.containsKey(key)) {
+          uniqueResults[key] = item;
+        }
+      }
+      
+      return uniqueResults.values.take(limit).toList();
+    } catch (e) {
+      print('Error fetching music by genre: $e');
+      return [];
+    }
+  }
+
+  // Get trending tracks in a specific genre
+  Future<List<TrendingItem>> _getTrendingByGenre(String genre, {int limit = 15}) async {
+    try {
+      // Use chart.getTopTracks and filter by genre
+      final response = await http.get(
+        Uri.parse('$_lastfmBaseUrl?method=chart.gettoptracks&api_key=$_lastfmApiKey&format=json&limit=50'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final tracks = data['tracks']['track'] as List;
+        
+        final List<TrendingItem> genreItems = [];
+        for (final track in tracks) {
+          final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
+          final genres = trackInfo['genres'] as List? ?? [];
+          
+          // Check if this track matches the genre
+          if (genres.any((g) => g.toString().toLowerCase().contains(genre.toLowerCase()))) {
+            genreItems.add(TrendingItem(
+              id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              type: 'music',
+              title: track['name'] ?? '',
+              artist: track['artist']['name'] ?? '',
+              coverUrl: trackInfo['coverUrl'],
+              previewUrl: null,
+              sources: ['lastfm'],
+              score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),
+              musicData: trackInfo,
+            ));
+            
+            if (genreItems.length >= limit) break;
+          }
+        }
+        
+        return genreItems;
+      }
+    } catch (e) {
+      print('Error fetching trending by genre: $e');
+    }
+    
+    return [];
+  }
+
+  // Get popular tracks in a specific genre using tag.getTopTracks
+  Future<List<TrendingItem>> _getPopularByGenre(String genre, {int limit = 15}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_lastfmBaseUrl?method=tag.gettoptracks&api_key=$_lastfmApiKey&tag=${Uri.encodeComponent(genre)}&format=json&limit=$limit'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final tracks = data['tracks']['track'] as List;
+        
+        final List<TrendingItem> items = [];
+        for (final track in tracks) {
+          final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
+          items.add(TrendingItem(
+            id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            type: 'music',
+            title: track['name'] ?? '',
+            artist: track['artist']['name'] ?? '',
+            coverUrl: trackInfo['coverUrl'],
+            previewUrl: null,
+            sources: ['lastfm'],
+            score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),
+            musicData: trackInfo,
+          ));
+        }
+        
+        return items;
+      }
+    } catch (e) {
+      print('Error fetching popular by genre: $e');
+    }
+    
+    return [];
+  }
+
   // Filter trending items by keywords
   List<TrendingItem> filterByKeywords(List<TrendingItem> items, List<String> keywords) {
     if (keywords.isEmpty) return items;
