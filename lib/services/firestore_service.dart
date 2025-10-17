@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' show User;
+import 'package:lyfstyl/services/books_service.dart';
 import '../models/user_profile.dart';
 import '../models/media_item.dart';
 import '../models/log_entry.dart';
@@ -81,7 +82,24 @@ class FirestoreService {
     final existing = await findMediaByTitleAndType(title, type);
     if (existing != null) return existing;
     final now = DateTime.now();
-    final item = MediaItem(
+    final dynamic item;
+     if (type == MediaType.book) {
+      item  = BookItem(
+        mediaId: 'temp',
+        source: MediaSource.manual,
+        title: title,
+        subtitle: null,
+        creator: creator,
+        releaseDate: null,
+        genres: const [],
+        coverUrl: null,
+        externalIds: const {},
+        createdAt: now,
+        updatedAt: now,
+      );
+
+    } else {
+     item = MediaItem(
       mediaId: 'temp',
       type: type,
       source: MediaSource.manual,
@@ -94,7 +112,7 @@ class FirestoreService {
       externalIds: const {},
       createdAt: now,
       updatedAt: now,
-    );
+    );}
     final id = await createMediaItem(item);
     final created = await getMediaItem(id);
     return created!;

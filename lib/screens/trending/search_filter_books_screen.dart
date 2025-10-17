@@ -15,36 +15,34 @@ class SearchBooksScreen extends StatefulWidget {
   State<SearchBooksScreen> createState() => _SearchBooksScreenState();
 }
 
-
 class _SearchBooksScreenState extends State<SearchBooksScreen> {
   final TextEditingController _keywordsCtrl = TextEditingController();
-  final TextEditingController _subjectCtrl = TextEditingController();
+  final List<String> _subjects = [
+    'Fiction',
+    'Nonfiction',
+    'Science',
+    'Fantasy',
+    'Biography',
+    'History',
+    'Mystery',
+    'Romance',
+    'Children',
+    'Young Adult',
+  ];
+
   String _searchTitle = '';
   String _searchAuthor = '';
   String _searchSubject = '';
   Future<List<Book>>? _searchFuture;
   final BooksService _service = BooksService();
 
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-
-
-
   @override
   void dispose() {
     _keywordsCtrl.dispose();
-    _subjectCtrl.dispose();
     super.dispose();
   }
 
-
-
-
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Search Books')),
@@ -69,10 +67,20 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextField(
-                    controller: _subjectCtrl,
+                  child: DropdownButtonFormField<String>(
+                    value: _searchSubject.isNotEmpty ? _searchSubject : null,
                     decoration: const InputDecoration(labelText: 'Subject'),
-                    onChanged: (val) => _searchSubject = val,
+                    items: _subjects
+                        .map((subject) => DropdownMenuItem(
+                              value: subject,
+                              child: Text(subject),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchSubject = val ?? '';
+                      });
+                    },
                   ),
                 ),
                 IconButton(
@@ -98,12 +106,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return const Center(child: Text('No results.'));
                         }
-                        final Books = snapshot.data!;
+                        final books = snapshot.data!;
                         return ListView.separated(
-                          itemCount: Books.length,
+                          itemCount: books.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
-                            final item = Books[index];
+                            final item = books[index];
                             return ListTile(
                               leading: item.id.isNotEmpty
                                   ? ClipRRect(
@@ -133,34 +141,23 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                       child: const Icon(Icons.book, color: Colors.grey),
                                     ),
                               title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                              subtitle: Text(item.authors[0], maxLines: 1, overflow: TextOverflow.ellipsis),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Chip(
-                                    label: Text(item.id.toString()),
-                                    backgroundColor: Colors.blue[50],
-                                    labelStyle: const TextStyle(fontSize: 10),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(Icons.add),
-                                    tooltip: 'Add Log',
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) => AddLogScreen(
-                                            preFilledData: {
-                                              'title': item.title,
-                                              'type': 'book',
-                                              'creator': (item.authors.isNotEmpty ? item.authors.join(', ') : ''),
-                                            },
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
+                              subtitle: Text(item.authors.isNotEmpty ? item.authors[0] : '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.add),
+                                tooltip: 'Add Log',
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => AddLogScreen(
+                                        preFilledData: {
+                                          'title': item.title,
+                                          'type': 'book',
+                                          'creator': (item.authors.isNotEmpty ? item.authors.join(', ') : ''),
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               onTap: () async {
                                 final url = 'https://openlibrary.org/books/${item.id}.json';
@@ -186,7 +183,6 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            // Show cover image
                                             if (item.id.isNotEmpty)
                                               Padding(
                                                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -218,8 +214,6 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                               Text('Pages: ${data['number_of_pages']}'),
                                             if (data['subjects'] != null)
                                               Text('Subjects: ${data['subjects'].join(", ")}'),
-                                            if (data['weight'] != null)
-                                              Text('Weight: ${data['weight']}'),
                                             if (data['isbn_13'] != null)
                                               Text('ISBN-13: ${data['isbn_13'].join(", ")}'),
                                             if (data['isbn_10'] != null)
@@ -234,7 +228,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                         ),
                                         TextButton(
                                           onPressed: () {
-                                            Navigator.of(context).pop(); // Close the dialog
+                                            Navigator.of(context).pop();
                                             Navigator.of(context).push(
                                               MaterialPageRoute(
                                                 builder: (context) => AddLogScreen(
@@ -265,5 +259,4 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
       ),
     );
   }
-
 }
