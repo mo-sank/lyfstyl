@@ -178,7 +178,6 @@ class BooksService {
     if (title.isNotEmpty) url += 'title=$titleQuery&';
     if (author.isNotEmpty) url += 'author=$authorQuery&';
     if (subject.isNotEmpty) url += 'subject=$subjectQuery&';
-
     final response = await http.get(Uri.parse(url));
     final List<Book> possibleBooks = List.empty(growable: true);
     if (response.statusCode == 200) {
