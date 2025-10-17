@@ -106,10 +106,10 @@ class _MyCollectionsScreenState extends State<MyCollectionsScreen> {
                       imageUrl: g.music.isNotEmpty ? g.music.first.media.coverUrl : null,
                     ),
                     _CollectionCard(
-                      title: 'Written',
+                      title: 'Books',
                       count: g.written.length,
                       lastLogged: g.lastWritten,
-                      onTap: () => _openList(context, 'Written', g.written),
+                      onTap: () => _openList(context, 'Books', g.written),
                       imageUrl: g.written.isNotEmpty ? g.written.first.media.coverUrl : null,
                     ),
                   ],
