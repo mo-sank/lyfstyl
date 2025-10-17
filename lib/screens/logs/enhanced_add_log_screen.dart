@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../services/enhanced_trending_service.dart';
 import '../../models/media_item.dart';
-import '../../models/enhanced_log_entry.dart';
+import '../../models/enhanced_log_entry.dart' as enhanced;
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
+import '../../models/log_entry.dart' as base;
 
 class EnhancedAddLogScreen extends StatefulWidget {
   final Map<String, dynamic>? preFilledData;
@@ -101,7 +102,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
       Map<String, dynamic> consumptionData = {};
       
       if (_type == MediaType.music) {
-        final musicData = MusicConsumptionData(
+        final musicData = enhanced.MusicConsumptionData(
           durationSeconds: _durationSeconds,
           playCount: _playCount,
           album: _album,
@@ -112,7 +113,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
         consumptionData = musicData.toMap();
       }
       
-      final log = LogEntry(
+      final log = base.LogEntry(
         logId: 'temp',
         userId: userId,
         mediaId: media.mediaId,
