@@ -34,6 +34,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+# Allow build/web for deployment
+!/build/web/
 
 # Symbolication related
 app.*.symbols

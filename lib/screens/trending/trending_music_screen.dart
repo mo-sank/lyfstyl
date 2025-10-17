@@ -50,9 +50,98 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
             'title': item.title,
             'type': 'music',
             'creator': item.artist,
+            'musicData': item.musicData,
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildRichDataDisplay(TrendingItem item) {
+    final data = item.musicData;
+    final List<Widget> infoWidgets = [];
+    
+    // Album
+    if (data['album'] != null && data['album'].toString().isNotEmpty) {
+      infoWidgets.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.album, size: 12, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              data['album'].toString(),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Duration
+    if (data['durationSeconds'] != null) {
+      final duration = Duration(seconds: data['durationSeconds'] as int);
+      final durationText = duration.inMinutes > 0 
+          ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
+          : '${duration.inSeconds}s';
+      infoWidgets.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timer, size: 12, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              durationText,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Year
+    if (data['year'] != null) {
+      infoWidgets.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              data['year'].toString(),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Genres
+    if (data['genres'] != null && (data['genres'] as List).isNotEmpty) {
+      final genres = (data['genres'] as List).take(2).join(', ');
+      infoWidgets.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.category, size: 12, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              genres,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (infoWidgets.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Wrap(
+      spacing: 12,
+      runSpacing: 2,
+      children: infoWidgets,
     );
   }
 
@@ -125,7 +214,16 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                                 child: const Icon(Icons.music_note, color: Colors.grey),
                               ),
                         title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text(item.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            if (item.musicData.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              _buildRichDataDisplay(item),
+                            ],
+                          ],
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
