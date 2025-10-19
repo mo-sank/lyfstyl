@@ -57,22 +57,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    // Generate profile link
+    String? profileUrl;
+    if (profile.isPublic && profile.username != null) {
+      final baseUrl = _getBaseUrl();
+      profileUrl = "$baseUrl/profile/${profile.username}";
+    } else if (profile.isPublic) {
+      // Fallback to user ID if no username is set
+      final baseUrl = _getBaseUrl();
+      profileUrl = "$baseUrl/profile/${user.uid}";
+    }
+
+    // Debug: Print the generated URL
+    print('DEBUG SHARE: Generated profile URL: $profileUrl');
+
     final shareText = StringBuffer()
-    ..writeln("${profile.displayName ?? "A user"}'s profile on MyApp:")
+    ..writeln("${profile.displayName ?? 'A user'}'s profile on MyApp:")
     ..writeln(profile.bio?.isNotEmpty == true ? '"${profile.bio}"' : '')
     ..writeln()
     ..writeln('Interests: ${profile.interests.isEmpty ? "None" : profile.interests.join(", ")}')
     ..writeln();
     
-    // Generate profile link
-    if (profile.isPublic && profile.username != null) {
-      final baseUrl = _getBaseUrl();
-      final profileUrl = "$baseUrl/profile/${profile.username}";
-      shareText.writeln('View profile: $profileUrl');
-    } else if (profile.isPublic) {
-      // Fallback to user ID if no username is set
-      final baseUrl = _getBaseUrl();
-      final profileUrl = "$baseUrl/profile/${user.uid}";
+    if (profileUrl != null) {
       shareText.writeln('View profile: $profileUrl');
     } else {
       shareText.writeln('(Profile is currently private)');

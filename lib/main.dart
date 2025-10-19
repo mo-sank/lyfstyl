@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
@@ -13,6 +14,10 @@ import 'screens/profile/public_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Use URL-based routing instead of hash-based routing
+  usePathUrlStrategy();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -34,30 +39,27 @@ class LyfstylApp extends StatelessWidget {
           // Create router inside the Builder to ensure it has access to providers
           final router = GoRouter(
             initialLocation: '/',
+            debugLogDiagnostics: true, // Enable debug logging
             routes: [
-              // Home / auth wrapper route
-              GoRoute(
-                path: '/',
-                builder: (context, state) => const AuthWrapper(),
-              ),
-
-              // Public profile route - accessible to everyone
+              // Public profile route - MUST come first to match before '/'
               GoRoute(
                 path: '/profile/:username',
                 builder: (context, state) {
                   final username = state.pathParameters['username']!;
+                  print('DEBUG ROUTER: Building PublicProfileScreen for username: $username');
                   return PublicProfileScreen(username: username);
                 },
               ),
+              
+              // Home / auth wrapper route
+              GoRoute(
+                path: '/',
+                builder: (context, state) {
+                  print('DEBUG ROUTER: Building AuthWrapper');
+                  return const AuthWrapper();
+                },
+              ),
             ],
-            // Prevent redirects when on profile pages
-            redirect: (context, state) {
-              // Allow access to profile pages without redirect
-              if (state.matchedLocation.startsWith('/profile/')) {
-                return null;
-              }
-              return null;
-            },
           );
 
           return MaterialApp.router(
