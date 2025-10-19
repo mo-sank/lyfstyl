@@ -7,6 +7,7 @@ import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../models/nyt_book.dart';
 
 class TrendingBooksScreen extends StatefulWidget {
   const TrendingBooksScreen({super.key});
@@ -73,7 +74,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
       _selectedListName = overview.lists.isNotEmpty ? overview.lists.first.listName : null;
       _displayBooks = overview.lists.isNotEmpty ? overview.lists.first.books : [];
       _filtered = _displayBooks;
-      //_allDates = [overview.publishedDate]; // You can extend this to fetch more dates if needed
+      _allDates = [overview.publishedDate]; // You can extend this to fetch more dates if needed
     });
     return overview;
   }
@@ -153,41 +154,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
     super.dispose();
   }
 
-  Future<String?> fetchOpenLibraryCoverByTitleAuthor(String title, String author) async {
-  final titleQuery = Uri.encodeComponent(title);
-  final authorQuery = Uri.encodeComponent(author);
-  final url = 'https://openlibrary.org/search.json?title=$titleQuery&author=$authorQuery';
-  final response = await http.get(Uri.parse(url));
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    final docs = data['docs'] as List?;
-    if (docs != null && docs.isNotEmpty) {
-      final doc = docs.first;
-      // Try cover_i first
-      if (doc['cover_i'] != null) {
-        return 'https://covers.openlibrary.org/b/id/${doc['cover_i']}-L.jpg?default=false';
-      }
-      // Try ISBNs from search result
-      if (doc['isbn'] != null && doc['isbn'] is List && doc['isbn'].isNotEmpty) {
-        return 'https://covers.openlibrary.org/b/isbn/${doc['isbn'][0]}-L.jpg?default=false';
-      }
-    }
-  }
-  return null;
-}
 
-Future<String?> getBestCoverUrl(NYTBook item) async {
-  // Try ISBN cover first with default=false
-  if (item.isbn?.isNotEmpty ?? false) {
-    final isbnUrl = 'https://covers.openlibrary.org/b/isbn/${item.isbn}-L.jpg?default=false';
-    final resp = await http.head(Uri.parse(isbnUrl));
-    if (resp.statusCode == 200) {
-      return isbnUrl;
-    }
-  }
-  // Fallback to title/author search
-  return await fetchOpenLibraryCoverByTitleAuthor(item.title, item.author);
-}
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +264,6 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
                                 final books = await _service.fetchBooks(item.title, item.author, '');
                                 if (books.isNotEmpty && context.mounted) {
                                   final book = books.first;
-                                  // Optionally, fetch edition details for more fields:
                                   final details = await _service.bookDetails(book.id);
                                   final bookToShow = details ?? book;
 
@@ -333,8 +299,8 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
                                                 ),
                                               ),
                                             // Authors: fallback to NYT if Open Library is empty
-                                            if (bookToShow.authors.isNotEmpty)
-                                              Text('Authors: ${bookToShow.authors.join(", ")}')
+                                            if (bookToShow.authors != null)
+                                              Text('Authors: ${bookToShow.authors!.join(", ")}')
                                             else if (item.author.isNotEmpty)
                                               Text('Authors: ${item.author}'),
                                             if (bookToShow.publishers != null)
@@ -374,8 +340,8 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
                                                   preFilledData: {
                                                     'title': bookToShow.title.isNotEmpty ? bookToShow.title : item.title,
                                                     'type': 'book',
-                                                    'creator': (bookToShow.authors.isNotEmpty
-                                                        ? bookToShow.authors.join(', ')
+                                                    'creator': (bookToShow.authors != null
+                                                        ? bookToShow.authors?.join(', ')
                                                         : item.author),
                                                   },
                                                 ),
