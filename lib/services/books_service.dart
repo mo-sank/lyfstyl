@@ -174,5 +174,5 @@ Future<String?> getBestCoverUrl(NYTBook item) async {
 }
 
 void main() async {
-  final _service = BooksService();
+  final service = BooksService();
 }

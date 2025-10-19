@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' show User;
-import 'package:lyfstyl/services/books_service.dart';
 import '../models/user_profile.dart';
 import '../models/media_item.dart';
 import '../models/log_entry.dart';
@@ -46,10 +45,34 @@ class FirestoreService {
     await usersCol.doc(profile.userId).set(profile.toMap(), SetOptions(merge: true));
   }
 
-  Future<UserProfile?> getUserProfile(String userId) async {
-    final doc = await usersCol.doc(userId).get();
-    if (!doc.exists) return null;
-    return UserProfile.fromDoc(doc);
+  /// Gets a user profile by their Firebase UID
+  Future<UserProfile?> getUserProfile(String uid) async {
+    try {
+      // FIXED: Changed from 'userProfiles' to 'users' to match other methods
+      final doc = await usersCol.doc(uid).get();
+      if (!doc.exists) return null;
+      return UserProfile.fromDoc(doc);
+    } catch (e) {
+      print('Error fetching profile by UID: $e');
+      return null;
+    }
+  }
+
+  /// Gets a user profile by username
+  Future<UserProfile?> getUserProfileByUsername(String username) async {
+    try {
+      // FIXED: Changed from 'userProfiles' to 'users' to match other methods
+      final snapshot = await usersCol
+          .where('username', isEqualTo: username)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return UserProfile.fromDoc(snapshot.docs.first);
+    } catch (e) {
+      print('Error fetching profile by username: $e');
+      return null;
+    }
   }
 
   // Media: create/get/search

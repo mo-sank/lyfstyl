@@ -175,7 +175,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
             children: [
               // Media Type Dropdown
               DropdownButtonFormField<MediaType>(
-                value: _type,
+                initialValue: _type,
                 items: MediaType.values
                     .map((t) => DropdownMenuItem(
                           value: t, 
