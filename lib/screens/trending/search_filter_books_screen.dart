@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
+import '../../models/book.dart';
 
 class SearchBooksScreen extends StatefulWidget {
   const SearchBooksScreen({super.key});
@@ -239,7 +240,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                     child: const Icon(Icons.book, color: Colors.grey),
                                   ),
                             title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            subtitle: Text(item.authors.isNotEmpty ? item.authors[0] : '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(item.authors != null ? item.authors![0] : '', maxLines: 1, overflow: TextOverflow.ellipsis),
                             trailing: IconButton(
                               icon: const Icon(Icons.add),
                               tooltip: 'Add Log',
@@ -250,7 +251,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                       preFilledData: {
                                         'title': item.title,
                                         'type': 'book',
-                                        'creator': (item.authors.isNotEmpty ? item.authors.join(', ') : ''),
+                                        'creator': (item.authors != null ? item.authors!.join(', ') : ''),
                                       },
                                     ),
                                   ),
