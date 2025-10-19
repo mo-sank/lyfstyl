@@ -8,7 +8,8 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
+import 'screens/profile/public_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,15 +29,47 @@ class LyfstylApp extends StatelessWidget {
         ChangeNotifierProvider<AuthService>(create: (context) => AuthService()),
         Provider<FirestoreService>(create: (context) => FirestoreService()),
       ],
-      child: MaterialApp(
-        title: 'Lyfstyl',
-        theme: buildAppTheme(),
-        home: const AuthWrapper(),
+      child: Builder(
+        builder: (context) {
+          // Create router inside the Builder to ensure it has access to providers
+          final router = GoRouter(
+            initialLocation: '/',
+            routes: [
+              // Home / auth wrapper route
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const AuthWrapper(),
+              ),
+
+              // Public profile route - accessible to everyone
+              GoRoute(
+                path: '/profile/:username',
+                builder: (context, state) {
+                  final username = state.pathParameters['username']!;
+                  return PublicProfileScreen(username: username);
+                },
+              ),
+            ],
+            // Prevent redirects when on profile pages
+            redirect: (context, state) {
+              // Allow access to profile pages without redirect
+              if (state.matchedLocation.startsWith('/profile/')) {
+                return null;
+              }
+              return null;
+            },
+          );
+
+          return MaterialApp.router(
+            title: 'Lyfstyl',
+            theme: buildAppTheme(),
+            routerConfig: router,
+          );
+        },
       ),
     );
   }
 }
-
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});

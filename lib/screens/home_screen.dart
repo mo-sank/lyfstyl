@@ -23,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  bool _isDrawerOpen = false;
+  final bool _isDrawerOpen = false;
 
   final List<NavigationItem> _navigationItems = [
     NavigationItem(

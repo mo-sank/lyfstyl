@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
@@ -6,6 +7,8 @@ import '../../models/user_profile.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
 import 'profile_edit_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:html' as html show window;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,6 +33,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final svc = context.read<FirestoreService>();
     await svc.ensureUserProfile(user);
     return svc.getUserProfile(user.uid);
+  }
+
+  String _getBaseUrl() {
+    // For web platform, get the current URL
+    if (kIsWeb) {
+      final origin = html.window.location.origin;
+      return origin; // e.g., http://localhost:8080 or https://lyfstyl.com
+    }
+    // For mobile/desktop, use production URL
+    return 'https://lyfstyl.com';
+  }
+
+  void _shareProfile() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    final profile = await svc.getUserProfile(user.uid);
+
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You don't have a profile to share yet!")),
+      );
+      return;
+    }
+
+    final shareText = StringBuffer()
+    ..writeln("${profile.displayName ?? "A user"}'s profile on MyApp:")
+    ..writeln(profile.bio?.isNotEmpty == true ? '"${profile.bio}"' : '')
+    ..writeln()
+    ..writeln('Interests: ${profile.interests.isEmpty ? "None" : profile.interests.join(", ")}')
+    ..writeln();
+    
+    // Generate profile link
+    if (profile.isPublic && profile.username != null) {
+      final baseUrl = _getBaseUrl();
+      final profileUrl = "$baseUrl/profile/${profile.username}";
+      shareText.writeln('View profile: $profileUrl');
+    } else if (profile.isPublic) {
+      // Fallback to user ID if no username is set
+      final baseUrl = _getBaseUrl();
+      final profileUrl = "$baseUrl/profile/${user.uid}";
+      shareText.writeln('View profile: $profileUrl');
+    } else {
+      shareText.writeln('(Profile is currently private)');
+    }
+
+    await Share.share(shareText.toString());
   }
 
   Future<List<(LogEntry, MediaItem?)>> _loadLogsWithMedia() async {
@@ -59,6 +108,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('My Profile'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: _shareProfile,
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () async {
