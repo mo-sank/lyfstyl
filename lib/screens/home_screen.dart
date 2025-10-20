@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/stats_service.dart';
+import '../models/log_entry.dart';
+import '../models/media_item.dart';
 import 'auth/login_screen.dart';
 import 'profile/profile_screen.dart';
 import 'logs/add_log_screen.dart';
@@ -23,9 +25,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  final bool _isDrawerOpen = false;
+  late Future<List<(LogEntry, MediaItem?)>> _logsFuture;
 
   final List<NavigationItem> _navigationItems = [
+    NavigationItem(
+      icon: Icons.home,
+      label: 'All',
+      color: const Color(0xFF8B5CF6),
+    ),
     NavigationItem(
       icon: Icons.movie,
       label: 'Movies',
@@ -39,9 +46,37 @@ class _HomeScreenState extends State<HomeScreen> {
     NavigationItem(
       icon: Icons.music_note,
       label: 'Music',
-      color: const Color(0xFF6B7280),
+      color: const Color(0xFF10B981),
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLogs();
+  }
+
+  void _loadLogs() {
+    _logsFuture = _fetchLogsWithMedia();
+  }
+
+  Future<List<(LogEntry, MediaItem?)>> _fetchLogsWithMedia() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    final logs = await svc.getUserLogs(user.uid, limit: 50);
+    
+    final logsWithMedia = <(LogEntry, MediaItem?)>[];
+    for (final log in logs) {
+      final media = await svc.getMediaItem(log.mediaId);
+      logsWithMedia.add((log, media));
+    }
+    
+    return logsWithMedia;
+  }
+
+  List<(LogEntry, MediaItem?)> _filterByType(List<(LogEntry, MediaItem?)> logs, List<MediaType> types) {
+    return logs.where((entry) => types.contains(entry.$1.mediaType)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,21 +112,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildSidebarButton(
                   icon: Icons.add,
                   color: const Color(0xFF8B5CF6),
-                  onTap: () {
-                    Navigator.of(context).push(
+                  onTap: () async {
+                    await Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const AddLogScreen()),
                     );
+                    // Refresh logs after adding
+                    setState(() {
+                      _loadLogs();
+                    });
                   },
                 ),
                 const SizedBox(height: 20),
-                // Back button
+                // Refresh button
                 _buildSidebarButton(
-                  icon: Icons.arrow_back,
+                  icon: Icons.refresh,
                   onTap: () {
-                    // Only pop if there's something to pop
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
+                    setState(() {
+                      _loadLogs();
+                    });
                   },
                 ),
                 const Spacer(),
@@ -160,19 +198,259 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainContent() {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildMoviesContent();
-      case 1:
-        return _buildBooksContent();
-      case 2:
-        return _buildMusicContent();
-      default:
-        return _buildMoviesContent();
-    }
+    return FutureBuilder<List<(LogEntry, MediaItem?)>>(
+      future: _logsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final allLogs = snapshot.data ?? [];
+
+        switch (_selectedIndex) {
+          case 0:
+            return _buildAllMediaContent(allLogs);
+          case 1:
+            final movieLogs = _filterByType(allLogs, [MediaType.film, MediaType.show]);
+            return _buildMoviesContent(movieLogs);
+          case 2:
+            final bookLogs = _filterByType(allLogs, [MediaType.book]);
+            return _buildBooksContent(bookLogs);
+          case 3:
+            final musicLogs = _filterByType(allLogs, [MediaType.album, MediaType.song, MediaType.music]);
+            return _buildMusicContent(musicLogs);
+          default:
+            return _buildAllMediaContent(allLogs);
+        }
+      },
+    );
   }
 
-  Widget _buildMoviesContent() {
+  Widget _buildAllMediaContent(List<(LogEntry, MediaItem?)> logs) {
+    final movieLogs = _filterByType(logs, [MediaType.film, MediaType.show]);
+    final bookLogs = _filterByType(logs, [MediaType.book]);
+    final musicLogs = _filterByType(logs, [MediaType.album, MediaType.song, MediaType.music]);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Welcome Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Welcome to Lyfstyl',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Track all your media in one place • ${logs.length} items logged',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Stats Overview
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Movies & Shows',
+                  movieLogs.length.toString(),
+                  Icons.movie,
+                  const Color(0xFF8B5CF6),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Books',
+                  bookLogs.length.toString(),
+                  Icons.book,
+                  const Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Music',
+                  musicLogs.length.toString(),
+                  Icons.music_note,
+                  const Color(0xFF10B981),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // Movies & Shows Section
+          if (movieLogs.isNotEmpty) ...[
+            _buildSectionHeader('Movies & Shows', Icons.movie, () {
+              setState(() => _selectedIndex = 1);
+            }),
+            const SizedBox(height: 16),
+            ...movieLogs.take(3).map((entry) {
+              final (log, media) = entry;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildMediaCard(log, media),
+              );
+            }),
+            if (movieLogs.length > 3) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setState(() => _selectedIndex = 1),
+                child: Text('View all ${movieLogs.length} movies & shows →'),
+              ),
+            ],
+            const SizedBox(height: 32),
+          ],
+
+          // Books Section
+          if (bookLogs.isNotEmpty) ...[
+            _buildSectionHeader('Books', Icons.book, () {
+              setState(() => _selectedIndex = 2);
+            }),
+            const SizedBox(height: 16),
+            ...bookLogs.take(3).map((entry) {
+              final (log, media) = entry;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildMediaCard(log, media),
+              );
+            }),
+            if (bookLogs.length > 3) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setState(() => _selectedIndex = 2),
+                child: Text('View all ${bookLogs.length} books →'),
+              ),
+            ],
+            const SizedBox(height: 32),
+          ],
+
+          // Music Section
+          if (musicLogs.isNotEmpty) ...[
+            _buildSectionHeader('Music', Icons.music_note, () {
+              setState(() => _selectedIndex = 3);
+            }),
+            const SizedBox(height: 16),
+            ...musicLogs.take(3).map((entry) {
+              final (log, media) = entry;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildMediaCard(log, media),
+              );
+            }),
+            if (musicLogs.length > 3) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setState(() => _selectedIndex = 3),
+                child: Text('View all ${musicLogs.length} tracks →'),
+              ),
+            ],
+          ],
+
+          // Empty state if no logs at all
+          if (logs.isEmpty) ...[
+            const SizedBox(height: 48),
+            _buildEmptyState(
+              'Start Your Journey',
+              'Log your first movie, book, or song to get started!',
+              Icons.add_circle_outline,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, VoidCallback onViewAll) {
+    return Row(
+      children: [
+        Icon(icon, size: 24, color: const Color(0xFF1F2937)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        const Spacer(),
+        TextButton.icon(
+          onPressed: onViewAll,
+          icon: const Icon(Icons.arrow_forward, size: 16),
+          label: const Text('View All'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMoviesContent(List<(LogEntry, MediaItem?)> logs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -200,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Movies',
+                          'Movies & Shows',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -208,9 +486,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Your cinematic journey',
-                          style: TextStyle(
+                        Text(
+                          '${logs.length} items logged',
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 16,
                           ),
@@ -218,49 +496,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.person, color: Colors.white, size: 20),
-                      ),
-                    ],
-                  ),
+                  const Icon(Icons.movie, color: Colors.white, size: 48),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 24),
-          // Filter buttons
-          Row(
-            children: [
-              _buildFilterChip('All', true),
-              const SizedBox(width: 12),
-              _buildFilterChip('Favorites', false),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Content list
-          _buildContentList(),
+          
+          if (logs.isEmpty)
+            _buildEmptyState(
+              'No movies or shows logged yet',
+              'Start logging your favorite films and TV shows!',
+              Icons.movie_outlined,
+            )
+          else
+            ..._buildMediaList(logs),
         ],
       ),
     );
   }
 
-  Widget _buildBooksContent() {
+  Widget _buildBooksContent(List<(LogEntry, MediaItem?)> logs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -295,9 +551,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Your reading adventure',
-                          style: TextStyle(
+                        Text(
+                          '${logs.length} books logged',
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 16,
                           ),
@@ -305,391 +561,286 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.person, color: Colors.white, size: 20),
-                      ),
-                    ],
-                  ),
+                  const Icon(Icons.book, color: Colors.white, size: 48),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              _buildFilterChip('All', true),
-              const SizedBox(width: 12),
-              _buildFilterChip('Favorites', false),
-            ],
+          
+          // Discover Books button
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const BooksScreen()),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.search, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    'Discover Books',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Spacer(),
+                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 24),
-          _buildContentList(),
+          
+          if (logs.isEmpty)
+            _buildEmptyState(
+              'No books logged yet',
+              'Start tracking your reading journey!',
+              Icons.book_outlined,
+            )
+          else
+            ..._buildMediaList(logs),
         ],
       ),
     );
   }
 
-  Widget _buildMusicContent() {
+  Widget _buildMusicContent(List<(LogEntry, MediaItem?)> logs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Card
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
-              );
-            },
-            child: Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
+          Container(
+            width: double.infinity,
+            height: 120,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Trending Music',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Discover what\'s hot right now',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
+                        const Text(
+                          'Music',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: const Icon(Icons.trending_up, color: Colors.white, size: 20),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${logs.length} tracks logged',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
                           ),
-                          child: const Icon(Icons.music_note, color: Colors.white, size: 20),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.music_note, color: Colors.white, size: 48),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 24),
           
-          // Search Music Card
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
-              );
-            },
-            child: Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(
-                minHeight: 100,
-                maxHeight: 120,
-              ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Search Music',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Find and log your favorite songs',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Filter buttons
+          // Quick actions
           Row(
             children: [
-              _buildFilterChip('All', true),
-              const SizedBox(width: 12),
-              _buildFilterChip('Favorites', false),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Quick access cards
-          _buildMusicQuickAccess(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMusicQuickAccess() {
-    return Column(
-      children: [
-        _buildListItem(
-          title: 'Trending Music',
-          category: 'Music • Latest',
-          description: 'Discover what\'s trending in music right now.',
-          imageUrl: 'https://via.placeholder.com/60x60/10B981/FFFFFF?text=♪',
-          rating: 4,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          title: 'My Music Collection',
-          category: 'Collections • Music',
-          description: 'View and organize your logged music.',
-          imageUrl: 'https://via.placeholder.com/60x60/3B82F6/FFFFFF?text=🎵',
-          rating: 4,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MyCollectionsScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          title: 'Add Music Log',
-          category: 'Log • Music',
-          description: 'Log a new music item you\'ve listened to.',
-          imageUrl: 'https://via.placeholder.com/60x60/8B5CF6/FFFFFF?text=+',
-          rating: 4,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AddLogScreen(
-                  preFilledData: {
-                    'type': 'music',
+              Expanded(
+                child: _buildActionCard(
+                  'Search Music',
+                  Icons.search,
+                  const Color(0xFF3B82F6),
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
+                    );
                   },
                 ),
               ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF374151) : const Color(0xFF8B5CF6),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isSelected) ...[
-            const Icon(Icons.check, color: Colors.white, size: 16),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'Trending',
+                  Icons.trending_up,
+                  const Color(0xFF8B5CF6),
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 24),
+          
+          if (logs.isEmpty)
+            _buildEmptyState(
+              'No music logged yet',
+              'Start tracking your favorite songs and albums!',
+              Icons.music_note_outlined,
+            )
+          else
+            ..._buildMediaList(logs),
         ],
       ),
     );
   }
 
-  Widget _buildContentList() {
-    return Column(
-      children: [
-        _buildListItem(
-          title: 'The Conjuring',
-          category: 'Horror',
-          description: 'Supporting line text lorem ipsum dolor sit amet, consectetur.',
-          imageUrl: 'https://via.placeholder.com/60x60/DC2626/FFFFFF?text=TC',
-          rating: 5,
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          title: 'KPop Demon Hunters',
-          category: 'Action',
-          description: 'Supporting line text lorem ipsum dolor sit amet, consectetur.',
-          imageUrl: 'https://via.placeholder.com/60x60/7C3AED/FFFFFF?text=KDH',
-          rating: 5,
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          title: 'My Collections',
-          category: 'Collections • All Media',
-          description: 'View and organize your logged media by type.',
-          imageUrl: 'https://via.placeholder.com/60x60/3B82F6/FFFFFF?text=📚',
-          rating: 4,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MyCollectionsScreen()),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildListItem({
-    required String title,
-    required String category,
-    required String description,
-    required String imageUrl,
-    required int rating,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: color,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
-        child: Row(
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(48.0),
+        child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                imageUrl,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.image, color: Colors.grey),
-                  );
-                },
+            Icon(icon, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                    ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildMediaList(List<(LogEntry, MediaItem?)> logs) {
+    return logs.map((entry) {
+      final (log, media) = entry;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _buildMediaCard(log, media),
+      );
+    }).toList();
+  }
+
+  Widget _buildMediaCard(LogEntry log, MediaItem? media) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Cover image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: media?.coverUrl != null
+                ? Image.network(
+                    media!.coverUrl!,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildPlaceholderImage(log.mediaType);
+                    },
+                  )
+                : _buildPlaceholderImage(log.mediaType),
+          ),
+          const SizedBox(width: 16),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  media?.title ?? 'Unknown ${log.mediaType.name}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
                   ),
+                ),
+                if (media?.creator != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    category,
+                    media!.creator!,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
                     ),
                   ),
+                ],
+                if (log.review != null && log.review!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    description,
+                    log.review!,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[500],
@@ -698,30 +849,59 @@ class _HomeScreenState extends State<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
+          // Rating
+          if (log.rating != null)
             Column(
               children: [
                 Row(
                   children: List.generate(5, (index) {
                     return Icon(
-                      index < rating ? Icons.star : Icons.star_border,
+                      index < log.rating! ? Icons.star : Icons.star_border,
                       color: const Color(0xFFF59E0B),
                       size: 16,
                     );
                   }),
                 ),
-                const SizedBox(height: 8),
-                Icon(
-                  Icons.favorite_border,
-                  color: Colors.grey[400],
-                  size: 20,
-                ),
               ],
             ),
-          ],
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPlaceholderImage(MediaType type) {
+    IconData icon;
+    Color color;
+    
+    switch (type) {
+      case MediaType.film:
+      case MediaType.show:
+        icon = Icons.movie;
+        color = const Color(0xFF8B5CF6);
+        break;
+      case MediaType.book:
+        icon = Icons.book;
+        color = const Color(0xFF6B7280);
+        break;
+      case MediaType.album:
+      case MediaType.song:
+      case MediaType.music:
+        icon = Icons.music_note;
+        color = const Color(0xFF10B981);
+        break;
+    }
+    
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, color: color, size: 30),
     );
   }
 
@@ -731,7 +911,6 @@ class _HomeScreenState extends State<HomeScreen> {
         color: const Color(0xFFF8FAFC),
         child: Column(
           children: [
-            // Header
             Container(
               height: 200,
               decoration: const BoxDecoration(
@@ -747,11 +926,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(
-                      Icons.person,
-                      size: 60,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.person, size: 60, color: Colors.white),
                     SizedBox(height: 12),
                     Text(
                       'Welcome back!',
@@ -763,16 +938,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       'Your media journey awaits',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
-            // Menu items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
@@ -784,16 +955,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pop(context);
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.history,
-                    title: 'My Activity',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const MyCollectionsScreen()),
                       );
                     },
                   ),
@@ -815,60 +976,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _showStatsDialog(context);
                     },
                   ),
-                  _buildDrawerItem(
-                    icon: Icons.search,
-                    title: 'Search Music',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.trending_up,
-                    title: 'Trending Music',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.trending_up,
-                    title: 'Discover Books',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const BooksScreen()),
-                      );
-                    },
-                  ),
-                                   
                   const Divider(),
-                  _buildDrawerItem(
-                    icon: Icons.settings,
-                    title: 'Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // TODO: Add settings screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Settings coming soon!')),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.help,
-                    title: 'Help & Support',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // TODO: Add help screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Help & Support coming soon!')),
-                      );
-                    },
-                  ),
                   _buildDrawerItem(
                     icon: Icons.logout,
                     title: 'Sign Out',
@@ -902,9 +1010,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -923,23 +1029,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final svc = context.read<FirestoreService>();
       final statsService = StatsService();
       
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
       
-      // Fetch logs and calculate stats
       final logs = await svc.getUserLogs(uid, limit: 1000);
       final stats = statsService.calculateUserStats(logs);
       
-      // Close loading dialog
       Navigator.of(context).pop();
       
-      // Show stats dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -950,25 +1050,9 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStatRow('Total Items Logged', stats.totalItemsLogged.toString()),
-                if (stats.totalMusicMinutes > 0)
-                  _buildStatRow('Total Music Time', statsService.formatDuration(stats.totalMusicMinutes)),
+                _buildStatRow('Total Items', stats.totalItemsLogged.toString()),
                 if (stats.averageRating > 0)
-                  _buildStatRow('Average Rating', stats.averageRating.toStringAsFixed(1)),
-                if (stats.topGenres.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text('Top Genres:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...stats.topGenres.take(3).map((genre) => 
-                    Text('• $genre (${stats.genreCounts[genre]} items)')
-                  ),
-                ],
-                if (stats.topArtists.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text('Top Artists:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...stats.topArtists.take(3).map((artist) => 
-                    Text('• $artist (${stats.artistCounts[artist]} songs)')
-                  ),
-                ],
+                  _buildStatRow('Avg Rating', stats.averageRating.toStringAsFixed(1)),
               ],
             ),
           ),
@@ -981,12 +1065,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } catch (e) {
-      // Close loading dialog if open
       Navigator.of(context).pop();
-      
-      // Show error
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading stats: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -998,10 +1079,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
