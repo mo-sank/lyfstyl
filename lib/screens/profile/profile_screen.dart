@@ -72,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     print('DEBUG SHARE: Generated profile URL: $profileUrl');
 
     final shareText = StringBuffer()
-    ..writeln("${profile.displayName ?? 'A user'}'s profile on MyApp:")
+    ..writeln("${profile.displayName ?? 'A user'}'s profile on Lyfstyl:")
     ..writeln(profile.bio?.isNotEmpty == true ? '"${profile.bio}"' : '')
     ..writeln()
     ..writeln('Interests: ${profile.interests.isEmpty ? "None" : profile.interests.join(", ")}')
