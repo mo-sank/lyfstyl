@@ -1,3 +1,5 @@
+// Contributions:
+// Julia: (3 hours) Profile page sharing and logs showing up on profile
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';

@@ -1,3 +1,6 @@
+// Contributors
+// Julia: (1 hour) Media type now includes albums, songs, and shows
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MediaType { film, book, album, song, show, music }

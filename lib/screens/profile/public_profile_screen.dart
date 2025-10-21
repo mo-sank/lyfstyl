@@ -1,3 +1,5 @@
+//Contributions
+//Julia: (2 hours) Public profile class
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
