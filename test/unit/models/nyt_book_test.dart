@@ -1,7 +1,8 @@
 // maya poghosyan
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lyfstyl/services/books_service.dart';
+import 'package:lyfstyl/models/nyt_book.dart';
+import 'package:lyfstyl/models/book.dart';
 
 void main() {
   group('NYTBook', () {

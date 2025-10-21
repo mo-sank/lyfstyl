@@ -14,7 +14,9 @@ import 'profile/profile_screen.dart';
 import 'logs/add_log_screen.dart';
 import 'collections/my_collections_screen.dart';
 import 'trending/trending_music_screen.dart';
+import 'trending/trending_movies_screen.dart';
 import 'music/music_search_screen.dart';
+import 'movies/movie_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -500,6 +502,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Quick actions for movies
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  'Search Movies',
+                  Icons.search,
+                  const Color(0xFF3B82F6),
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MovieSearchScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'Trending',
+                  Icons.trending_up,
+                  const Color(0xFF8B5CF6),
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TrendingMoviesScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           

@@ -220,7 +220,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
                             }
                             return ListTile(
                               leading: FutureBuilder<String?>(
-                                future: getBestCoverUrl(item),
+                                future: _service.getBestCoverUrl(item),
                                 builder: (context, snapshot) {
                                   final url = snapshot.data;
                                   if (url != null) {

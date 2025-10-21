@@ -79,6 +79,16 @@ class _AddLogScreenState extends State<AddLogScreen> {
         case 'film':
         default:
           _type = MediaType.film;
+          // Pre-fill film-specific data if available
+          if (data['filmData'] != null) {
+            final filmData = data['filmData'] as Map<String, dynamic>;
+            _year = filmData['year'] as int?;
+            _genres = (filmData['genres'] as List<dynamic>? ?? []).cast<String>();
+            
+            // Update controllers
+            _genresCtrl.text = _genres.join(', ');
+            _yearCtrl.text = _year?.toString() ?? '';
+          }
           break;
       }
     }
@@ -114,6 +124,12 @@ class _AddLogScreenState extends State<AddLogScreen> {
           year: _year,
         );
         consumptionData = musicData.toMap();
+      } else if (_type == MediaType.film) {
+        consumptionData = {
+          'director': _creatorCtrl.text.trim().isEmpty ? null : _creatorCtrl.text.trim(),
+          'genres': _genres,
+          'year': _year,
+        };
       }
       
       final log = LogEntry(
@@ -149,6 +165,45 @@ class _AddLogScreenState extends State<AddLogScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Widget _buildFilmSpecificFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Film Details',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        // Genres Field
+        CustomTextField(
+          controller: _genresCtrl,
+          label: 'Genres (comma separated)',
+          onChanged: (value) {
+            _genres = value
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
+          },
+        ),
+        const SizedBox(height: 12),
+        
+        // Year Field
+        CustomTextField(
+          controller: _yearCtrl,
+          label: 'Release Year (optional)',
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            _year = int.tryParse(value);
+          },
+        ),
+      ],
+    );
   }
 
   Widget _buildMusicSpecificFields() {
@@ -326,6 +381,12 @@ class _AddLogScreenState extends State<AddLogScreen> {
               // Music-specific fields
               if (_type == MediaType.music) ...[
                 _buildMusicSpecificFields(),
+                const SizedBox(height: 12),
+              ],
+              
+              // Film-specific fields
+              if (_type == MediaType.film) ...[
+                _buildFilmSpecificFields(),
                 const SizedBox(height: 12),
               ],
               InputDecorator(

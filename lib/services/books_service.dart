@@ -135,44 +135,36 @@ class BooksService {
     }
     return names;
   }
-}
 
   Future<String?> fetchOpenLibraryCoverByTitleAuthor(String title, String author) async {
-  final titleQuery = Uri.encodeComponent(title);
-  final authorQuery = Uri.encodeComponent(author);
-  final url = 'https://openlibrary.org/search.json?title=$titleQuery&author=$authorQuery';
-  final response = await http.get(Uri.parse(url));
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    final docs = data['docs'] as List?;
-    if (docs != null && docs.isNotEmpty) {
-      final doc = docs.first;
-      // Try cover_i first
-      if (doc['cover_i'] != null) {
-        return 'https://covers.openlibrary.org/b/id/${doc['cover_i']}-L.jpg?default=false';
-      }
-      // Try ISBNs from search result
-      if (doc['isbn'] != null && doc['isbn'] is List && doc['isbn'].isNotEmpty) {
-        return 'https://covers.openlibrary.org/b/isbn/${doc['isbn'][0]}-L.jpg?default=false';
+    final titleQuery = Uri.encodeComponent(title);
+    final authorQuery = Uri.encodeComponent(author);
+    final url = 'https://openlibrary.org/search.json?title=$titleQuery&author=$authorQuery';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final docs = data['docs'] as List?;
+      if (docs != null && docs.isNotEmpty) {
+        final doc = docs.first;
+        if (doc['cover_i'] != null) {
+          return 'https://covers.openlibrary.org/b/id/${doc['cover_i']}-L.jpg?default=false';
+        }
+        if (doc['isbn'] != null && doc['isbn'] is List && doc['isbn'].isNotEmpty) {
+          return 'https://covers.openlibrary.org/b/isbn/${doc['isbn'][0]}-L.jpg?default=false';
+        }
       }
     }
+    return null;
   }
-  return null;
-}
 
-Future<String?> getBestCoverUrl(NYTBook item) async {
-  // Try ISBN cover first with default=false
-  if (item.isbn?.isNotEmpty ?? false) {
-    final isbnUrl = 'https://covers.openlibrary.org/b/isbn/${item.isbn}-L.jpg?default=false';
-    final resp = await http.head(Uri.parse(isbnUrl));
-    if (resp.statusCode == 200) {
-      return isbnUrl;
+  Future<String?> getBestCoverUrl(NYTBook item) async {
+    if (item.isbn?.isNotEmpty ?? false) {
+      final isbnUrl = 'https://covers.openlibrary.org/b/isbn/${item.isbn}-L.jpg?default=false';
+      final resp = await http.head(Uri.parse(isbnUrl));
+      if (resp.statusCode == 200) {
+        return isbnUrl;
+      }
     }
+    return await fetchOpenLibraryCoverByTitleAuthor(item.title, item.author);
   }
-  // Fallback to title/author search
-  return await fetchOpenLibraryCoverByTitleAuthor(item.title, item.author);
-}
-
-void main() async {
-  final service = BooksService();
 }
