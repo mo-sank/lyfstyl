@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/enhanced_log_entry.dart';
+import '../models/media_item.dart';
 
 class EnhancedTrendingItem {
   final String id;
@@ -54,7 +55,7 @@ class EnhancedTrendingService {
             type: 'music',
             title: track['name'] ?? '',
             artist: track['artist']['name'] ?? '',
-            coverUrl: musicData.coverUrl,
+            coverUrl: null,
             previewUrl: null,
             sources: ['lastfm'],
             score: (int.tryParse(track['playcount'] ?? '0') ?? 0).toDouble(),

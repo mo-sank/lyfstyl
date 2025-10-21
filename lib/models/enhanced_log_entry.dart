@@ -69,12 +69,7 @@ class LogEntry {
         return MediaType.film;
       case 'book':
         return MediaType.book;
-      case 'album':
-        return MediaType.album;
-      case 'song':
-        return MediaType.song;
-      case 'show':
-        return MediaType.show;
+
       case 'music':
         return MediaType.music;
       default:
