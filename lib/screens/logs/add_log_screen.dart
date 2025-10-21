@@ -1,3 +1,7 @@
+
+
+// Mohamed Sankari - 4 hours
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -354,7 +358,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
           child: ListView(
             children: [
               DropdownButtonFormField<MediaType>(
-                initialValue: _type,
+                value: _type,
                 items: MediaType.values
                     .map((t) => DropdownMenuItem(
                           value: t, 
