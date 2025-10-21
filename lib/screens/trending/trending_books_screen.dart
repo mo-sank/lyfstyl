@@ -1,5 +1,5 @@
 // Trending Books
-// Cami Krugel
+// Cami Krugel, Maya Poghosyan
 // 5 Hours
 
 import 'package:flutter/material.dart';

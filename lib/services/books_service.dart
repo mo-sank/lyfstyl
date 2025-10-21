@@ -1,5 +1,5 @@
 // NYT Bestselling Books API Methods
-// Cami Krugel
+// Cami Krugel, Maya Poghosyan
 // 4 Hours
 
 import 'dart:convert';
