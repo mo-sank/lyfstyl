@@ -279,7 +279,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -333,7 +333,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -387,7 +387,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -433,7 +433,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }

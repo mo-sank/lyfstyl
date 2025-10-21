@@ -45,10 +45,34 @@ class FirestoreService {
     await usersCol.doc(profile.userId).set(profile.toMap(), SetOptions(merge: true));
   }
 
-  Future<UserProfile?> getUserProfile(String userId) async {
-    final doc = await usersCol.doc(userId).get();
-    if (!doc.exists) return null;
-    return UserProfile.fromDoc(doc);
+  /// Gets a user profile by their Firebase UID
+  Future<UserProfile?> getUserProfile(String uid) async {
+    try {
+      // FIXED: Changed from 'userProfiles' to 'users' to match other methods
+      final doc = await usersCol.doc(uid).get();
+      if (!doc.exists) return null;
+      return UserProfile.fromDoc(doc);
+    } catch (e) {
+      print('Error fetching profile by UID: $e');
+      return null;
+    }
+  }
+
+  /// Gets a user profile by username
+  Future<UserProfile?> getUserProfileByUsername(String username) async {
+    try {
+      // FIXED: Changed from 'userProfiles' to 'users' to match other methods
+      final snapshot = await usersCol
+          .where('username', isEqualTo: username)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return UserProfile.fromDoc(snapshot.docs.first);
+    } catch (e) {
+      print('Error fetching profile by username: $e');
+      return null;
+    }
   }
 
   // Media: create/get/search
@@ -81,7 +105,24 @@ class FirestoreService {
     final existing = await findMediaByTitleAndType(title, type);
     if (existing != null) return existing;
     final now = DateTime.now();
-    final item = MediaItem(
+    final dynamic item;
+     if (type == MediaType.book) {
+      item  = BookItem(
+        mediaId: 'temp',
+        source: MediaSource.manual,
+        title: title,
+        subtitle: null,
+        creator: creator,
+        releaseDate: null,
+        genres: const [],
+        coverUrl: null,
+        externalIds: const {},
+        createdAt: now,
+        updatedAt: now,
+      );
+
+    } else {
+     item = MediaItem(
       mediaId: 'temp',
       type: type,
       source: MediaSource.manual,
@@ -94,7 +135,7 @@ class FirestoreService {
       externalIds: const {},
       createdAt: now,
       updatedAt: now,
-    );
+    );}
     final id = await createMediaItem(item);
     final created = await getMediaItem(id);
     return created!;

@@ -299,7 +299,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
           child: ListView(
             children: [
               DropdownButtonFormField<MediaType>(
-                value: _type,
+                initialValue: _type,
                 items: MediaType.values
                     .map((t) => DropdownMenuItem(
                           value: t, 
