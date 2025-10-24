@@ -1,5 +1,20 @@
+// Cami Krugel
+// 1.75 hours
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:lyfstyl/utils/import_parser.dart';
+import 'dart:io';
+import '../../models/log_entry.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../../services/firestore_service.dart';
+import '../../models/media_item.dart';
+import '../../models/log_entry.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/custom_button.dart';
+
 
 class NewImportScreen extends StatelessWidget {
   const NewImportScreen({super.key});
@@ -28,6 +43,7 @@ class NewImportScreen extends StatelessWidget {
                   color: Colors.deepPurple,
                   buttonText: 'Upload Goodreads CSV',
                   uploadEnabled: true,
+                  parser: GoodreadsImportParser(),
                 ),
                 const SizedBox(height: 24),
                 _ImportCard(
@@ -37,6 +53,7 @@ class NewImportScreen extends StatelessWidget {
                   color: Colors.teal,
                   buttonText: 'Upload Letterboxd CSV',
                   uploadEnabled: true,
+                  parser: LetterboxdImportParser(),
                 ),
                 const SizedBox(height: 24),
                 _ImportCard(
@@ -63,7 +80,7 @@ class _ImportCard extends StatefulWidget {
   final Color color;
   final String buttonText;
   final bool uploadEnabled;
-  bool parseEnabled;
+  final ImportParser? parser; // Add this
 
   _ImportCard({
     required this.title,
@@ -72,7 +89,7 @@ class _ImportCard extends StatefulWidget {
     required this.color,
     required this.buttonText,
     this.uploadEnabled = false,
-    this.parseEnabled = false,
+    this.parser,
     super.key,
   });
 
@@ -82,6 +99,7 @@ class _ImportCard extends StatefulWidget {
 
 class _ImportCardState extends State<_ImportCard> {
   String? _fileName;
+  PlatformFile? _pickedFile;
   final TextEditingController _controller = TextEditingController();
 
   Future<void> _pickFile() async {
@@ -90,13 +108,68 @@ class _ImportCardState extends State<_ImportCard> {
       allowedExtensions: ['csv'],
     );
     if (result != null && result.files.isNotEmpty) {
-      widget.parseEnabled = true;
       setState(() {
-        _fileName = result.files.single.name;
+        _pickedFile = result.files.single;
+        _fileName = _pickedFile!.name;
         _controller.text = _fileName ?? '';
       });
-      // TODO: Handle file upload logic here
     }
+  }
+
+  Future<void> _parseFile() async {
+    if (_pickedFile == null || widget.parser == null) return;
+    String contents;
+    if (_pickedFile!.bytes != null) {
+      contents = String.fromCharCodes(_pickedFile!.bytes!);
+    } else if (_pickedFile!.path != null) {
+      contents = await File(_pickedFile!.path!).readAsString();
+    } else {
+      throw Exception('No file data found');
+    }
+    final parsedBooks = widget.parser!.parse(contents);
+
+    final svc = context.read<FirestoreService>();
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final now = DateTime.now();
+
+    int successCount = 0;
+    int errorCount = 0;
+
+    for (final book in parsedBooks) {
+      try {
+        final media = await svc.getOrCreateMedia(
+          title: book['Title'] ?? '',
+          type: MediaType.book,
+          creator: book['Author'] ?? '',
+        );
+        final log = LogEntry(
+          logId: 'temp',
+          userId: userId,
+          mediaId: media.mediaId,
+          mediaType: MediaType.book,
+          rating: 0,
+          review: "",
+          consumedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await svc.createLog(log);
+        successCount++;
+      } catch (e) {
+        errorCount++;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Imported $successCount logs, $errorCount errors')),
+    );
+    Navigator.of(context).pop();
   }
 
   @override
@@ -127,7 +200,7 @@ class _ImportCardState extends State<_ImportCard> {
                   Text(widget.title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: widget.color)),
                   const SizedBox(height: 8),
                   Text(widget.description, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                  if (widget.uploadEnabled && widget.parseEnabled) ...[
+                  if (widget.uploadEnabled) ...[
                     const SizedBox(height: 10),
                     TextField(
                       readOnly: true,
@@ -146,38 +219,10 @@ class _ImportCardState extends State<_ImportCard> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: _pickFile,
+                      onPressed: _pickedFile != null ? _parseFile : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.color,
+                        backgroundColor: _pickedFile != null ? widget.color : Colors.grey[300],
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(widget.buttonText, style: const TextStyle(fontSize: 16)),
-                    ),
-                  ] else if (widget.uploadEnabled)... [
-                    const SizedBox(height: 10),
-                    TextField(
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Selected file',
-                        hintText: 'No file selected',
-                        prefixIcon: Icon(Icons.insert_drive_file, color: widget.color),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.upload_file),
-                          onPressed: _pickFile,
-                          tooltip: 'Choose file',
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      controller: _controller,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        foregroundColor: Colors.grey[600],
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
