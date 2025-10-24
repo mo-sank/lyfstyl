@@ -4,6 +4,7 @@
 
 // maya poghosyan
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/screens/import/new_import_screen.dart';
 import 'package:lyfstyl/screens/trending/trending_books_screen.dart';
 import 'package:lyfstyl/screens/trending/search_filter_books_screen.dart';
 import 'package:lyfstyl/screens/trending/books_screen.dart';
@@ -1013,6 +1014,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.pop(context);
                       _showStatsDialog(context);
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.upload_file,
+                    title: 'Import Media',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const NewImportScreen()),
+                      );
                     },
                   ),
                   const Divider(),
