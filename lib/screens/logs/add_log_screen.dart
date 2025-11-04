@@ -43,6 +43,13 @@ class _AddLogScreenState extends State<AddLogScreen> {
   List<String> _genres = [];
   int? _year;
 
+  // Book-specific fields
+  int? _pages;
+  int? _isbn;
+  int? _isbn13;
+  String? _publisher;
+  int? _readCount;
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +86,15 @@ class _AddLogScreenState extends State<AddLogScreen> {
           break;
         case 'book':
           _type = MediaType.book;
+          if (data['bookData'] != null) {
+            final bookData = data['bookData'] as Map<String, dynamic>;
+            _pages = bookData['pages'] as int?;
+            _isbn = bookData['isbn'] as int?;
+            _isbn13 = bookData['isbn13'] as int?;
+            _publisher = bookData['publisher'] as String?;
+            _readCount = bookData['readCount'] as int?;
+          }
+
           break;
         case 'film':
         default:
@@ -134,6 +150,15 @@ class _AddLogScreenState extends State<AddLogScreen> {
           'genres': _genres,
           'year': _year,
         };
+      } else if (_type == MediaType.book){
+        final bookData = BookConsumptionData(
+          pages: _pages,
+          isbn: _isbn,
+          isbn13: _isbn13,
+          publisher: _publisher,
+          readCount: _readCount
+        );
+        consumptionData = bookData.toMap();
       }
       
       final log = LogEntry(

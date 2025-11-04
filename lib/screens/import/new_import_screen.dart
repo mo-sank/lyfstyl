@@ -137,25 +137,34 @@ class _ImportCardState extends State<_ImportCard> {
 
     for (final book in parsedBooks) {
       try {
+        if (book['Exclusive Shelf']=='read'){
         final media = await svc.getOrCreateMedia(
           title: book['Title'] ?? '',
           type: MediaType.book,
           creator: book['Author'] ?? '',
         );
+        final dateRead = parseGoodreadsDate(book['Date Read']);
         final log = LogEntry(
           logId: 'temp',
           userId: userId,
           mediaId: media.mediaId,
           mediaType: MediaType.book,
-          rating: 0,
-          review: "",
-          consumedAt: now,
+          rating: book['My Rating'],
+          review: book['My Review'],
+          consumedAt: dateRead,
           createdAt: now,
           updatedAt: now,
+          consumptionData: BookConsumptionData(
+            pages: book['Number of Pages'],
+            isbn: book['ISBN'],
+            isbn13: book['ISBN13'],
+            publisher: book['Publisher'],
+            readCount: book['Read Count']
+          ).toMap()
         );
         await svc.createLog(log);
         successCount++;
-      } catch (e) {
+      }} catch (e) {
         errorCount++;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -249,4 +258,30 @@ class _ImportCardState extends State<_ImportCard> {
       ),
     );
   }
+}
+
+int? parseInt(dynamic value) {
+  if (value == null) return null;
+  var str = value.toString().trim();
+  // Remove Excel artifact
+  if (str.startsWith('="') && str.endsWith('"')) {
+    str = str.substring(2, str.length - 1);
+  }
+  // Remove any remaining quotes
+  str = str.replaceAll('"', '');
+  return int.tryParse(str);
+}
+
+DateTime parseGoodreadsDate(String? value) {
+  if (value == null || value.trim().isEmpty) return DateTime.now();
+  final parts = value.split('/');
+  try {
+    if (parts.length == 3 && parts[0].length == 4) {
+      final year = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final day = int.parse(parts[2]);
+      return DateTime(year, month, day);
+    }
+  } catch (_) {}
+  return DateTime.now();
 }

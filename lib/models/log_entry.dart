@@ -76,6 +76,42 @@ class LogEntry {
   }
 }
 
+class BookConsumptionData {
+  final int? pages;
+  final int? isbn;
+  final int? isbn13;
+  final String? publisher;
+  final int? readCount;
+
+  BookConsumptionData({
+    this.pages,
+    this.isbn,
+    this.isbn13,
+    this.publisher,
+    this.readCount
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'pages': pages,
+      'isbn': isbn,
+      'isbn13': isbn13,
+      'publisher': publisher,
+      'readCount': readCount
+    };
+  }
+
+    factory BookConsumptionData.fromMap(Map<String, dynamic> data) {
+    return BookConsumptionData(
+      pages: data['pages'] as int?,
+      isbn: data['isbn'] as int?,
+      isbn13: data['isbn13'] as int?,
+      publisher: data['publisher'] as String?,
+      readCount: data['readcCOunt'] as int?
+    );
+  }
+}
+
 // Music-specific consumption data
 class MusicConsumptionData {
   final int? durationSeconds; // Song duration in seconds
