@@ -14,6 +14,7 @@ import '../../models/media_item.dart';
 import '../../models/log_entry.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
+import '../../theme/media_type_theme.dart';
 
 
 class NewImportScreen extends StatelessWidget {
@@ -39,8 +40,8 @@ class NewImportScreen extends StatelessWidget {
                 _ImportCard(
                   title: 'Goodreads',
                   description: 'Upload your reading history from Goodreads.',
-                  icon: Icons.book,
-                  color: Colors.deepPurple,
+                  icon: MediaType.book.icon,
+                  color: MediaType.book.color,
                   buttonText: 'Upload Goodreads CSV',
                   uploadEnabled: true,
                   parser: GoodreadsImportParser(),
@@ -49,8 +50,8 @@ class NewImportScreen extends StatelessWidget {
                 _ImportCard(
                   title: 'Letterboxd',
                   description: 'Import your watched films from Letterboxd.',
-                  icon: Icons.movie,
-                  color: Colors.teal,
+                  icon: MediaType.film.icon,
+                  color: MediaType.film.color,
                   buttonText: 'Upload Letterboxd CSV',
                   uploadEnabled: true,
                   parser: LetterboxdImportParser(),
@@ -59,8 +60,8 @@ class NewImportScreen extends StatelessWidget {
                 _ImportCard(
                   title: 'Spotify',
                   description: 'Import your music listening history from Spotify.',
-                  icon: Icons.music_note,
-                  color: Colors.green,
+                  icon: MediaType.music.icon,
+                  color: MediaType.music.color,
                   buttonText: 'Coming Soon',
                   uploadEnabled: false,
                 ),
@@ -206,7 +207,7 @@ class _ImportCardState extends State<_ImportCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: widget.color)),
+                  Text(widget.title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 8),
                   Text(widget.description, style: const TextStyle(fontSize: 14, color: Colors.black87)),
                   if (widget.uploadEnabled) ...[

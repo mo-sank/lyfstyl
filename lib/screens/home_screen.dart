@@ -23,6 +23,7 @@ import 'trending/trending_music_screen.dart';
 import 'trending/trending_movies_screen.dart';
 import 'music/music_search_screen.dart';
 import 'movies/movie_search_screen.dart';
+import '../theme/media_type_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,19 +43,19 @@ class _HomeScreenState extends State<HomeScreen> {
       color: const Color(0xFF8B5CF6),
     ),
     NavigationItem(
-      icon: Icons.movie,
+      icon: MediaType.film.icon,
       label: 'Movies',
-      color: const Color(0xFF8B5CF6),
+      color: MediaType.film.color,
     ),
     NavigationItem(
-      icon: Icons.book,
+      icon: MediaType.book.icon,
       label: 'Books',
-      color: const Color(0xFF6B7280),
+      color: MediaType.book.color
     ),
     NavigationItem(
-      icon: Icons.music_note,
+      icon: MediaType.music.icon,
       label: 'Music',
-      color: const Color(0xFF10B981),
+      color: MediaType.music.color,
     ),
   ];
 
@@ -287,8 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildStatCard(
                   'Movies & Shows',
                   movieLogs.length.toString(),
-                  Icons.movie,
-                  const Color(0xFF8B5CF6),
+                  MediaType.film.icon,
+                  MediaType.film.color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -296,8 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildStatCard(
                   'Books',
                   bookLogs.length.toString(),
-                  Icons.book,
-                  const Color(0xFF6B7280),
+                  MediaType.book.icon,
+                  MediaType.book.color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -305,8 +306,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildStatCard(
                   'Music',
                   musicLogs.length.toString(),
-                  Icons.music_note,
-                  const Color(0xFF10B981),
+                  MediaType.music.icon,
+                  MediaType.music.color,
                 ),
               ),
             ],
@@ -361,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Music Section
           if (musicLogs.isNotEmpty) ...[
-            _buildSectionHeader('Music', Icons.music_note, () {
+            _buildSectionHeader('Music', MediaType.music.icon, () {
               setState(() => _selectedIndex = 3);
             }),
             const SizedBox(height: 16),
@@ -700,9 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                  ),
-                  const Icon(Icons.music_note, color: Colors.white, size: 48),
-                ],
+                  ),                ],
               ),
             ),
           ),
@@ -929,7 +928,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case MediaType.album:
       case MediaType.song:
       case MediaType.music:
-        icon = Icons.music_note;
+        icon = MediaType.music.icon;
         color = const Color(0xFF10B981);
         break;
     }
