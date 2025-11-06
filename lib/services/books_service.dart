@@ -64,25 +64,49 @@ class BooksService {
   Future<NYTOverview> getOverview({String? publishedDate}) async {
     final prefs = await SharedPreferences.getInstance();
     final cacheKey = '$_overviewCachePrefix${publishedDate ?? "current"}';
+
+    // Try exact-date cache first
     final cached = prefs.getString(cacheKey);
-
     if (cached != null) {
-      final data = json.decode(cached);
-      return NYTOverview.fromJson(data);
+      try {
+        final data = json.decode(cached);
+        // Debug log to help verify multiple-week caching
+        // ignore: avoid_print
+        return NYTOverview.fromJson(data);
+      } catch (e) {
+        // If cache is corrupt, drop through to network fetch
+        // ignore: avoid_print
+        print('BooksService.getOverview: cache corrupt for $cacheKey, fetching from network. error=$e');
+      }
     }
 
-    final url = Uri.parse(
+    // Build request URI including published_date when provided
+    final uri = Uri.parse(
       '$_baseUrl/lists/overview.json?api-key=$_apiKey'
-      '${publishedDate != null ? '&published_date=$publishedDate' : ''}'
+      '${publishedDate != null ? '&published_date=$publishedDate' : ''}',
     );
-    final response = await http.get(url);
+
+    // Debug log to show which date we're requesting
+    // ignore: avoid_print
+    print('BooksService.getOverview: fetching from NYT, published_date=$publishedDate, uri=$uri');
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      prefs.setString(cacheKey, json.encode(data));
-      return NYTOverview.fromJson(data);
-    } else {
-      throw Exception('Failed to load overview');
+      try {
+        final data = json.decode(response.body);
+        // Cache the raw response per-date so subsequent requests for the same week use cache
+        await prefs.setString(cacheKey, response.body);
+        // ignore: avoid_print
+        print('BooksService.getOverview: cached overview for key=$cacheKey');
+        return NYTOverview.fromJson(data);
+      } catch (e) {
+        // If parsing fails after a 200, still throw so caller can handle it
+        throw Exception('Failed to parse overview JSON: $e');
+      }
     }
+
+    // If network failed and we had no usable cache, throw a descriptive error
+    throw Exception('Failed to load overview (status=${response.statusCode}) for date=$publishedDate');
   }
 
   Future<List<Book>> fetchBooks(String title, String author, String subject) async {

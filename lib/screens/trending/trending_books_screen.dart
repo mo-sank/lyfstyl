@@ -51,19 +51,32 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
     _keywordsCtrl.addListener(_applyFilter);
   }
 
+  // Replace _initDatesAndOverview with this implementation that fetches multiple weeks
   Future<void> _initDatesAndOverview() async {
-    final currentOverview = await _service.getOverview();
-    final currentDate = currentOverview.publishedDate;
-    final prevDate = currentOverview.previousPublishedDate;
+    // Attempt to fetch a list of available overview dates (e.g. last 12 weeks)
+    try {
+      final dates = await _fetchAvailableDates(weeks: 12);
+      if (dates.isEmpty) {
+        // Fallback: request the current overview
+        final currentOverview = await _service.getOverview();
+        dates.add(currentOverview.publishedDate);
+      }
 
-    List<String> dates = [currentDate];
-    if (prevDate != null) dates.add(prevDate);
-
-    setState(() {
-      _allDates = dates;
-      _selectedDate = dates.first;
-      _futureOverview = _loadOverview(date: dates.first);
-    });
+      // Set the UI state: list of dates and load the first overview
+      setState(() {
+        _allDates = dates;
+        _selectedDate = dates.first;
+        _futureOverview = _loadOverview(date: dates.first);
+      });
+    } catch (e) {
+      // On error, fallback to single current overview and keep UI responsive
+      final currentOverview = await _service.getOverview();
+      setState(() {
+        _allDates = [currentOverview.publishedDate];
+        _selectedDate = currentOverview.publishedDate;
+        _futureOverview = _loadOverview(date: currentOverview.publishedDate);
+      });
+    }
   }
 
   Future<NYTOverview> _loadOverview({String? date}) async {
@@ -74,7 +87,8 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
       _selectedListName = overview.lists.isNotEmpty ? overview.lists.first.listName : null;
       _displayBooks = overview.lists.isNotEmpty ? overview.lists.first.books : [];
       _filtered = _displayBooks;
-      _allDates = [overview.publishedDate]; // You can extend this to fetch more dates if needed
+      // DO NOT overwrite _allDates here — we want to keep the full list fetched by _initDatesAndOverview
+      // _allDates = [overview.publishedDate]; // removed
     });
     return overview;
   }
