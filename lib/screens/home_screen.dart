@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Movies & Shows Section
           if (movieLogs.isNotEmpty) ...[
-            _buildSectionHeader('Movies & Shows', Icons.movie, () {
+            _buildSectionHeader('Movies & Shows', MediaType.film, () {
               setState(() => _selectedIndex = 1);
             }),
             const SizedBox(height: 16),
@@ -339,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Books Section
           if (bookLogs.isNotEmpty) ...[
-            _buildSectionHeader('Books', Icons.book, () {
+            _buildSectionHeader('Books', MediaType.book, () {
               setState(() => _selectedIndex = 2);
             }),
             const SizedBox(height: 16),
@@ -362,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Music Section
           if (musicLogs.isNotEmpty) ...[
-            _buildSectionHeader('Music', MediaType.music.icon, () {
+            _buildSectionHeader('Music', MediaType.music, () {
               setState(() => _selectedIndex = 3);
             }),
             const SizedBox(height: 16),
@@ -436,10 +436,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, VoidCallback onViewAll) {
+  Widget _buildSectionHeader(String title, MediaType type, VoidCallback onViewAll) {
     return Row(
       children: [
-        Icon(icon, size: 24, color: const Color(0xFF1F2937)),
+        Icon(type.icon, size: 24, color: const Color(0xFF1F2937)),
         const SizedBox(width: 8),
         Text(
           title,
@@ -505,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.movie, color: Colors.white, size: 48),
+                  const Icon(MediaType.film, color: Colors.white, size: 48),
                 ],
               ),
             ),
@@ -912,26 +912,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPlaceholderImage(MediaType type) {
-    IconData icon;
-    Color color;
-    
-    switch (type) {
-      case MediaType.film:
-      case MediaType.show:
-        icon = Icons.movie;
-        color = const Color(0xFF8B5CF6);
-        break;
-      case MediaType.book:
-        icon = Icons.book;
-        color = const Color(0xFF6B7280);
-        break;
-      case MediaType.album:
-      case MediaType.song:
-      case MediaType.music:
-        icon = MediaType.music.icon;
-        color = const Color(0xFF10B981);
-        break;
-    }
+    IconData icon = type.icon;
+    Color color = type.color;
     
     return Container(
       width: 60,
