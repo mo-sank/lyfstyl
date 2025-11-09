@@ -114,7 +114,7 @@ class BooksService {
     final authorQuery = Uri.encodeComponent(author);
     final subjectQuery = Uri.encodeComponent(subject);
 
-    String url = 'https://openlibrary.org/search.json?language=eng&';
+    String url = 'https://openlibrary.org/search.json?language=eng&sort=already_read&';
     if (title.isNotEmpty) url += 'title=$titleQuery&';
     if (author.isNotEmpty) url += 'author=$authorQuery&';
     if (subject.isNotEmpty) url += 'subject=$subjectQuery&';

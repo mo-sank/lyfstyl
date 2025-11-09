@@ -64,7 +64,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
       _selectedSubject = subject;
       _results = [];
     });
-    final books = await _service.fetchBooks('', '', subject);
+    List<Book> books = await _service.fetchBooks('', '', subject);
+    int count = 0;
+    while (books.isEmpty && count < 3){
+      count++;
+      books = await _service.fetchBooks('', '', subject);
+    }
     setState(() {
       _results = books;
       _isSearching = false;
