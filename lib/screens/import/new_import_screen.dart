@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lyfstyl/utils/import_parser.dart';
+import 'package:lyfstyl/utils/import_handlers.dart';
 import 'dart:io';
 import '../../models/log_entry.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class NewImportScreen extends StatelessWidget {
                   buttonText: 'Upload Goodreads CSV',
                   uploadEnabled: true,
                   parser: GoodreadsImportParser(),
+                  handler: GoodreadsImportHandler(),
                 ),
                 const SizedBox(height: 24),
                 _ImportCard(
@@ -54,7 +56,8 @@ class NewImportScreen extends StatelessWidget {
                   color: MediaType.film.color,
                   buttonText: 'Upload Letterboxd CSV',
                   uploadEnabled: true,
-                  parser: LetterboxdImportParser(),
+                  parser: GoodreadsImportParser(), // same parser can be reused
+                  handler: LetterboxdImportHandler(),
                 ),
                 const SizedBox(height: 24),
                 _ImportCard(
@@ -82,6 +85,7 @@ class _ImportCard extends StatefulWidget {
   final String buttonText;
   final bool uploadEnabled;
   final ImportParser? parser; // Add this
+  final ImportHandler? handler;
 
   _ImportCard({
     required this.title,
@@ -91,6 +95,7 @@ class _ImportCard extends StatefulWidget {
     required this.buttonText,
     this.uploadEnabled = false,
     this.parser,
+    this.handler,
     super.key,
   });
 
@@ -127,7 +132,7 @@ class _ImportCardState extends State<_ImportCard> {
     } else {
       throw Exception('No file data found');
     }
-    final parsedBooks = widget.parser!.parse(contents);
+    final parsedRows = widget.parser!.parse(contents);
 
     final svc = context.read<FirestoreService>();
     final userId = FirebaseAuth.instance.currentUser!.uid;
@@ -136,36 +141,14 @@ class _ImportCardState extends State<_ImportCard> {
     int successCount = 0;
     int errorCount = 0;
 
-    for (final book in parsedBooks) {
+    for (final row in parsedRows) {
       try {
-        if (book['Exclusive Shelf']=='read'){
-        final media = await svc.getOrCreateMedia(
-          title: book['Title'] ?? '',
-          type: MediaType.book,
-          creator: book['Author'] ?? '',
-        );
-        final dateRead = parseGoodreadsDate(book['Date Read']);
-        final log = LogEntry(
-          logId: 'temp',
-          userId: userId,
-          mediaId: media.mediaId,
-          mediaType: MediaType.book,
-          rating: book['My Rating'],
-          review: book['My Review'],
-          consumedAt: dateRead,
-          createdAt: now,
-          updatedAt: now,
-          consumptionData: BookConsumptionData(
-            pages: book['Number of Pages'],
-            isbn: book['ISBN'],
-            isbn13: book['ISBN13'],
-            publisher: book['Publisher'],
-            readCount: book['Read Count']
-          ).toMap()
-        );
-        await svc.createLog(log);
-        successCount++;
-      }} catch (e) {
+        if (widget.handler != null) {
+          print(row);
+          await widget.handler!.createFromMap(row, context, svc, userId, now);
+          successCount++;
+        }
+      } catch (e) {
         errorCount++;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -181,6 +164,7 @@ class _ImportCardState extends State<_ImportCard> {
     );
     Navigator.of(context).pop();
   }
+  
 
   @override
   void dispose() {
