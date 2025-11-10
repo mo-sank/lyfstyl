@@ -203,12 +203,33 @@ class FirestoreService {
     await logsCol.doc(collectionId).delete();
   }
 
-  // Collections: create/update/get by user
+  // ============================================================================
+  // Collections CRUD Operations
+  // ============================================================================
+
+  /// Creates a new collection with the given name for the user
+  Future<String> createCollectionByName(String userId, String name) async {
+    final now = DateTime.now();
+    final collection = CollectionModel(
+      collectionId: 'temp', // Will be replaced by Firestore doc ID
+      userId: userId,
+      name: name,
+      itemIds: const [],
+      createdAt: now,
+      updatedAt: now,
+    );
+    final ref = await collectionsCol.add(collection.toMap());
+    print('Created collection with ID: ${ref.id}');
+    return ref.id;
+  }
+
+  /// Creates a collection from a CollectionModel object
   Future<String> createCollection(CollectionModel c) async {
     final ref = await collectionsCol.add(c.toMap());
     return ref.id;
   }
 
+  /// Gets all collections for a specific user
   Future<List<CollectionModel>> getUserCollections(String userId) async {
     final snapshot = await collectionsCol
         .where('userId', isEqualTo: userId)
@@ -217,6 +238,14 @@ class FirestoreService {
     return snapshot.docs.map((d) => CollectionModel.fromDoc(d)).toList();
   }
 
+  /// Gets a single collection by ID
+  Future<CollectionModel?> getCollection(String collectionId) async {
+    final doc = await collectionsCol.doc(collectionId).get();
+    if (!doc.exists) return null;
+    return CollectionModel.fromDoc(doc);
+  }
+
+  /// Updates a collection with arbitrary data
   Future<void> updateCollection(
     String collectionId,
     Map<String, dynamic> data,
@@ -225,8 +254,53 @@ class FirestoreService {
     await collectionsCol.doc(collectionId).update(data);
   }
 
+  /// Renames a collection
+  Future<void> renameCollection(String collectionId, String newName) async {
+    await updateCollection(collectionId, {'name': newName});
+  }
+
+  /// Adds a media item to a collection
+  Future<void> addMediaToCollection(String collectionId, String mediaId) async {
+    await collectionsCol.doc(collectionId).update({
+      'itemIds': FieldValue.arrayUnion([mediaId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Removes a media item from a collection
+  Future<void> removeMediaFromCollection(String collectionId, String mediaId) async {
+    await collectionsCol.doc(collectionId).update({
+      'itemIds': FieldValue.arrayRemove([mediaId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Reorders items in a collection (replaces the entire itemIds array)
+  Future<void> reorderCollectionItems(String collectionId, List<String> newOrder) async {
+    await updateCollection(collectionId, {'itemIds': newOrder});
+  }
+
+  /// Deletes a collection
   Future<void> deleteCollection(String collectionId) async {
     await collectionsCol.doc(collectionId).delete();
+  }
+
+  /// Checks if a media item is in a specific collection
+  Future<bool> isMediaInCollection(String collectionId, String mediaId) async {
+    final collection = await getCollection(collectionId);
+    return collection?.itemIds.contains(mediaId) ?? false;
+  }
+
+  /// Gets all collections that contain a specific media item
+  Future<List<CollectionModel>> getCollectionsContainingMedia(
+    String userId,
+    String mediaId,
+  ) async {
+    final snapshot = await collectionsCol
+        .where('userId', isEqualTo: userId)
+        .where('itemIds', arrayContains: mediaId)
+        .get();
+    return snapshot.docs.map((d) => CollectionModel.fromDoc(d)).toList();
   }
 
   // Bookmarks
