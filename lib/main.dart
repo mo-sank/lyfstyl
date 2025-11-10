@@ -14,6 +14,7 @@ import 'services/user_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/friends/search_friends_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/profile/public_profile_screen.dart';
@@ -65,6 +66,11 @@ class LyfstylApp extends StatelessWidget {
                   print('DEBUG ROUTER: Building AuthWrapper');
                   return const AuthWrapper();
                 },
+              ),
+              
+              GoRoute(
+                path: '/search_users',
+                builder: (context, state) => const SearchUsersScreen(),
               ),
             ],
           );

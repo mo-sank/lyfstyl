@@ -59,6 +59,52 @@ class FirestoreService {
         .set(profile.toMap(), SetOptions(merge: true));
   }
 
+  // Adding friends subcollection
+  Future<void> addFriend(String currentUserId, String friendUserId) async {
+    if (currentUserId == friendUserId) return; // No self-friending
+    final friendDoc = usersCol.doc(currentUserId).collection('friends').doc(friendUserId);
+    await friendDoc.set({'addedAt': FieldValue.serverTimestamp()});
+    final currentUserDoc = usersCol.doc(friendUserId).collection('friends').doc(currentUserId);
+    await currentUserDoc.set({'addedAt': FieldValue.serverTimestamp()});
+  }
+
+  // Deleting friend
+  Future<void> removeFriend(String currentUserId, String friendUserId) async {
+    final friendDoc = usersCol.doc(currentUserId).collection('friends').doc(friendUserId);
+    await friendDoc.delete();
+    await usersCol.doc(friendUserId).collection('friends').doc(currentUserId).delete();
+  }
+
+  // Getting friends for current user
+  Future<List<UserProfile>> getFriends(String currentUserId) async {
+    final friendsSnapshot = await usersCol.doc(currentUserId).collection('friends').get();
+
+    final friendIds = friendsSnapshot.docs.map((doc) => doc.id).toList();
+
+    final friendProfiles = await Future.wait(friendIds.map((id) => usersCol.doc(id).get()));
+    
+    return friendProfiles.map((doc) => UserProfile.fromDoc(doc)).toList();
+  }
+
+    // Search for other users
+  Future<List<UserProfile>> searchUsers(String query) async {
+    // Get all public users
+    final snapshot = await usersCol
+        .where('isPublic', isEqualTo: true)
+        .get();
+
+    final lowerQuery = query.toLowerCase();
+
+    // Filter users by displayName or email containing the query
+    final results = snapshot.docs.map((doc) => UserProfile.fromDoc(doc)).where((profile) {
+      final displayNameMatch = profile.displayName?.toLowerCase().contains(lowerQuery) ?? false;
+      final emailMatch = profile.email.toLowerCase().contains(lowerQuery);
+      return displayNameMatch || emailMatch;
+    }).toList();
+
+    return results;
+  }
+
   /// Gets a user profile by their Firebase UID
   Future<UserProfile?> getUserProfile(String uid) async {
     try {

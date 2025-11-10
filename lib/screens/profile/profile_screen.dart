@@ -25,12 +25,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<UserProfile?> _profileFuture;
   late Future<List<(LogEntry, MediaItem?)>> _logsFuture;
   bool _isDeleting = false;
+  late Future<List<UserProfile>> _friendsFuture;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = _loadProfile();
     _logsFuture = _loadLogsWithMedia();
+    _friendsFuture = _loadFriends();
+  }
+
+  Future<List<UserProfile>> _loadFriends() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    return await svc.getFriends(user.uid);
   }
 
   Future<UserProfile?> _loadProfile() async {
@@ -312,6 +320,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       )
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Friends', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.person_add),
+                        tooltip: 'Search users to add',
+                        onPressed: () {
+                          context.push('/search_users'); // We'll create this route next
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<UserProfile>>(
+                    future: _friendsFuture,
+                    builder: (context, friendsSnapshot) {
+                      if (friendsSnapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final friends = friendsSnapshot.data ?? [];
+                      if (friends.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text('No friends yet', style: TextStyle(color: Colors.grey)),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: friends.length,
+                        itemBuilder: (context, index) {
+                          final friend = friends[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: friend.avatarUrl != null ? NetworkImage(friend.avatarUrl!) : null,
+                              child: friend.avatarUrl == null ? const Icon(Icons.person) : null,
+                            ),
+                            title: Text(friend.displayName ?? friend.username ?? friend.email),
+                            subtitle: Text('@${friend.username ?? friend.email}'),
+                            onTap: () {
+                              context.push('/profile/${friend.userId}');
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 16),
