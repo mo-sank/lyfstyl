@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
+import '../../services/user_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
 import 'profile_edit_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:html' as html show window;
 
 class ProfileScreen extends StatefulWidget {
@@ -22,6 +24,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<UserProfile?> _profileFuture;
   late Future<List<(LogEntry, MediaItem?)>> _logsFuture;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -110,6 +113,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _confirmDeleteAccount() async {
+    final passwordController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action cannot be undone. All of your profile information, logs, collections, and bookmarks will be permanently deleted.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirm your password',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final password = passwordController.text.trim();
+    passwordController.dispose();
+
+    if (confirmed == true && !_isDeleting) {
+      if (password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your password to proceed.')),
+        );
+        return;
+      }
+      await _deleteAccount(password);
+    }
+  }
+
+  Future<void> _deleteAccount(String password) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isDeleting = true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Deleting account… please wait')),
+    );
+
+    try {
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(cred);
+
+      final svc = context.read<UserService>();
+      await svc.deleteUserData(user.uid);
+      await user.delete();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account deleted. Goodbye!')),
+      );
+      context.go('/');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message =
+          'Failed to delete account. Please try again after re-authenticating.';
+      if (e.code == 'requires-recent-login') {
+        message = 'Please re-enter your password and try again.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect password. Please try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('Account delete error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,7 +236,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _profileFuture = _loadProfile();
               });
             },
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+            tooltip: 'Delete account',
+            onPressed: _isDeleting ? null : _confirmDeleteAccount,
+          ),
         ],
       ),
       body: FutureBuilder<UserProfile?>(

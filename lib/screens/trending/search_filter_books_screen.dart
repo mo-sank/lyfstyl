@@ -4,7 +4,11 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/books_service.dart';
+import '../../services/firestore_service.dart';
+import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
 import '../../models/book.dart';
 
@@ -38,6 +42,46 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
   final BooksService _service = BooksService();
   Timer? _debounce;
 
+  Future<void> _bookmarkBook(Book book) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save bookmarks')),
+      );
+      return;
+    }
+
+    final firestore = context.read<FirestoreService>();
+    try {
+      final coverUrl = await _service.fetchOpenLibraryCoverByTitleAuthor(
+        book.title,
+        book.authors?.isNotEmpty == true ? book.authors!.first : '',
+      );
+
+      await firestore.bookmarkMedia(
+        userId: user.uid,
+        mediaType: MediaType.book,
+        title: book.title,
+        creator: book.authors?.isNotEmpty == true ? book.authors!.first : null,
+        coverUrl: coverUrl,
+        metadata: {
+          'bookId': book.id,
+          'subjects': book.subjects,
+          'publishDate': book.publishDate,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Saved to bookmarks')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to bookmark book')));
+    }
+  }
+
   void _switchToBrowse() {
     setState(() {
       _currentMode = 'browse';
@@ -66,7 +110,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     });
     List<Book> books = await _service.fetchBooks('', '', subject);
     int count = 0;
-    while (books.isEmpty && count < 3){
+    while (books.isEmpty && count < 3) {
       count++;
       books = await _service.fetchBooks('', '', subject);
     }
@@ -122,8 +166,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                   child: ElevatedButton(
                     onPressed: _switchToBrowse,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _currentMode == 'browse' ? Colors.blue : Colors.grey[300],
-                      foregroundColor: _currentMode == 'browse' ? Colors.white : Colors.black,
+                      backgroundColor: _currentMode == 'browse'
+                          ? Colors.blue
+                          : Colors.grey[300],
+                      foregroundColor: _currentMode == 'browse'
+                          ? Colors.white
+                          : Colors.black,
                     ),
                     child: const Text('Browse by Subject'),
                   ),
@@ -133,8 +181,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                   child: ElevatedButton(
                     onPressed: _switchToSearch,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _currentMode == 'search' ? Colors.blue : Colors.grey[300],
-                      foregroundColor: _currentMode == 'search' ? Colors.white : Colors.black,
+                      backgroundColor: _currentMode == 'search'
+                          ? Colors.blue
+                          : Colors.grey[300],
+                      foregroundColor: _currentMode == 'search'
+                          ? Colors.white
+                          : Colors.black,
                     ),
                     child: const Text('Search Specific'),
                   ),
@@ -201,52 +253,77 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
             child: _isSearching
                 ? const Center(child: CircularProgressIndicator())
                 : _results.isEmpty
-                    ? Center(
-                        child: Text(
-                          _currentMode == 'browse'
-                              ? 'Choose a subject to discover books'
-                              : 'Search for specific books',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                        ),
-                      )
-                    : ListView.separated(
-                        itemCount: _results.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final item = _results[index];
-                          return ListTile(
-                            leading: item.id.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      'https://covers.openlibrary.org/b/olid/${item.id}-M.jpg?default=false',
+                ? Center(
+                    child: Text(
+                      _currentMode == 'browse'
+                          ? 'Choose a subject to discover books'
+                          : 'Search for specific books',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _results.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = _results[index];
+                      return ListTile(
+                        leading: item.id.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  'https://covers.openlibrary.org/b/olid/${item.id}-M.jpg?default=false',
+                                  width: 56,
+                                  height: 56,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
                                       width: 56,
                                       height: 56,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          width: 56,
-                                          height: 56,
-                                          color: Colors.grey[300],
-                                          child: const Icon(Icons.book, color: Colors.grey),
-                                        );
-                                      },
-                                    ),
-                                  )
-                                : Container(
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
                                       color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.book, color: Colors.grey),
-                                  ),
-                            title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            subtitle: Text(item.authors != null ? item.authors![0] : '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                            trailing: IconButton(
+                                      child: const Icon(
+                                        Icons.book,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.book,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        title: Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          item.authors != null ? item.authors![0] : '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.bookmark_border,
+                                color: Colors.orangeAccent,
+                              ),
+                              tooltip: 'Save bookmark',
+                              onPressed: () => _bookmarkBook(item),
+                            ),
+                            IconButton(
                               icon: const Icon(Icons.add),
                               tooltip: 'Add Log',
                               onPressed: () {
@@ -256,16 +333,20 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                       preFilledData: {
                                         'title': item.title,
                                         'type': 'book',
-                                        'creator': (item.authors != null ? item.authors!.join(', ') : ''),
+                                        'creator': (item.authors != null
+                                            ? item.authors!.join(', ')
+                                            : ''),
                                       },
                                     ),
                                   ),
                                 );
                               },
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
