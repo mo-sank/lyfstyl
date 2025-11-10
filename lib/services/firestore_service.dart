@@ -7,6 +7,7 @@ import '../models/media_item.dart';
 import '../models/log_entry.dart';
 import '../models/collection.dart';
 import '../models/bookmark_item.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   FirestoreService({FirebaseFirestore? firestore})
@@ -59,34 +60,176 @@ class FirestoreService {
         .set(profile.toMap(), SetOptions(merge: true));
   }
 
-  // Adding friends subcollection
-  Future<void> addFriend(String currentUserId, String friendUserId) async {
-    if (currentUserId == friendUserId) return; // No self-friending
-    final friendDoc = usersCol.doc(currentUserId).collection('friends').doc(friendUserId);
-    await friendDoc.set({'addedAt': FieldValue.serverTimestamp()});
-    final currentUserDoc = usersCol.doc(friendUserId).collection('friends').doc(currentUserId);
-    await currentUserDoc.set({'addedAt': FieldValue.serverTimestamp()});
-  }
+  // ---------------------------
+  // Friend Requests
+  // ---------------------------
 
-  // Deleting friend
-  Future<void> removeFriend(String currentUserId, String friendUserId) async {
-    final friendDoc = usersCol.doc(currentUserId).collection('friends').doc(friendUserId);
-    await friendDoc.delete();
-    await usersCol.doc(friendUserId).collection('friends').doc(currentUserId).delete();
-  }
 
-  // Getting friends for current user
-  Future<List<UserProfile>> getFriends(String currentUserId) async {
-    final friendsSnapshot = await usersCol.doc(currentUserId).collection('friends').get();
-
-    final friendIds = friendsSnapshot.docs.map((doc) => doc.id).toList();
-
-    final friendProfiles = await Future.wait(friendIds.map((id) => usersCol.doc(id).get()));
+  Future<void> sendFriendRequest(String recipientUserId) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
     
-    return friendProfiles.map((doc) => UserProfile.fromDoc(doc)).toList();
+    if (currentUser == null) {
+      throw Exception('No authenticated user');
+    }
+    
+    final currentUserId = currentUser.uid;
+    
+    try {
+      final requestRef = usersCol
+          .doc(recipientUserId)
+          .collection('friendRequests')
+          .doc(currentUserId);
+      
+      final requestData = {
+        'senderId': currentUserId,
+        'recipientId': recipientUserId,
+        'senderEmail': currentUser.email,
+        'senderDisplayName': currentUser.displayName,
+        'status': 'pending',
+        'sentAt': FieldValue.serverTimestamp(),
+      };
+
+      await requestRef.set(requestData, SetOptions(merge: true));
+
+      // Verify the document was actually created
+      final createdDoc = await requestRef.get();
+      print('Created Friend Request Document:');
+      print(createdDoc.data());
+    } catch (e, stackTrace) {
+      print('❌ Friend Request Error: $e');
+      print('❌ Stack Trace: $stackTrace');
+      rethrow;
+    }
+  }
+      // In firestore_service.dart - simplified version
+  Future<void> acceptFriendRequest(String currentUserId, String senderUserId) async {
+    try {
+      print('Step 1: Deleting friend request...');
+      final requestDoc = usersCol
+          .doc(currentUserId)
+          .collection('friendRequests')
+          .doc(senderUserId);
+      await requestDoc.delete();
+      print('✓ Friend request deleted');
+
+      print('Step 2: Adding to current user friends...');
+      final currentUserFriendDoc = usersCol
+          .doc(currentUserId)
+          .collection('friends')
+          .doc(senderUserId);
+      await currentUserFriendDoc.set({'addedAt': FieldValue.serverTimestamp()});
+      print('✓ Added to current user friends');
+
+      print('Step 3: Adding to sender friends...');
+      final senderFriendDoc = usersCol
+          .doc(senderUserId)
+          .collection('friends')
+          .doc(currentUserId);
+      await senderFriendDoc.set({'addedAt': FieldValue.serverTimestamp()});
+      print('✓ Added to sender friends');
+
+      print('✓ All steps completed successfully');
+    } catch (e) {
+      print('❌ Error: $e');
+      rethrow;
+    }
   }
 
-    // Search for other users
+  /// Decline a friend request from [senderUserId]
+  Future<void> declineFriendRequest(String currentUserId, String senderUserId) async {
+    final requestDoc = usersCol
+        .doc(currentUserId)
+        .collection('friendRequests')
+        .doc(senderUserId);
+
+    await requestDoc.delete();
+  }
+
+  // ---------------------------
+  // Friends
+  // ---------------------------
+
+      /// Remove a friend
+  Future<void> removeFriend(String currentUserId, String friendUserId) async {
+    final currentUserFriendRef =
+        usersCol.doc(currentUserId).collection('friends').doc(friendUserId);
+    final friendUserFriendRef =
+        usersCol.doc(friendUserId).collection('friends').doc(currentUserId);
+
+    final batch = FirebaseFirestore.instance.batch();
+
+      // Remove the friend relationship in both directions
+    batch.delete(currentUserFriendRef);
+    batch.delete(friendUserFriendRef);
+
+    await batch.commit();
+  }
+
+  /// Get current user's friends
+  Future<List<UserProfile>> getFriends(String userId) async {
+    final friendsSnap = await usersCol.doc(userId).collection('friends').get();
+
+    if (friendsSnap.docs.isEmpty) return [];
+
+    final friendIds = friendsSnap.docs.map((d) => d.id).toList();
+
+    final usersSnap = await usersCol
+        .where(FieldPath.documentId, whereIn: friendIds)
+        .get();
+
+    return usersSnap.docs.map((doc) => UserProfile.fromDoc(doc)).toList();
+  }
+
+  Future<List<UserProfile>> getFriendRequests(String currentUserId) async {
+    print('🔍 Attempting to fetch friend requests for user: $currentUserId');
+
+    try {
+      // Explicitly print the full path
+      final fullPath = 'users/$currentUserId/friendRequests';
+      print('🔍 Full collection path: $fullPath');
+
+      final requestsSnapshot = await usersCol
+          .doc(currentUserId)
+          .collection('friendRequests')
+          .get();
+
+      print('🔍 Total friend requests found: ${requestsSnapshot.docs.length}');
+
+      // If no requests, return empty list
+      if (requestsSnapshot.docs.isEmpty) {
+        print('🔍 No friend requests found');
+        return [];
+      }
+
+      // Log details of each request
+      for (var doc in requestsSnapshot.docs) {
+        print('🔍 Request Document ID: ${doc.id}');
+        print('🔍 Request Document Data: ${doc.data()}');
+      }
+
+      // Fetch sender profiles
+      final senderIds = requestsSnapshot.docs.map((doc) => doc.id).toList();
+
+      final senderProfiles = await Future.wait(
+        senderIds.map((id) => usersCol.doc(id).get())
+      );
+
+      final profiles = senderProfiles.map((doc) => UserProfile.fromDoc(doc)).toList();
+      
+      print('🔍 Number of sender profiles: ${profiles.length}');
+
+      return profiles;
+    } catch (e) {
+      print('❌ Error in getFriendRequests: $e');
+      return [];
+    }
+  }
+
+  // ---------------------------
+  // Search for users (public only)
+  // ---------------------------
+
+  // Search for other users
   Future<List<UserProfile>> searchUsers(String query) async {
     // Get all public users
     final snapshot = await usersCol

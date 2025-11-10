@@ -39,16 +39,29 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
 
   Future<void> _addFriend(UserProfile user) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == null) return;
+    print('=== Adding Friend ===');
+    print('Current User ID: $currentUserId');
+    print('Recipient User ID: ${user.userId}');
+    print('Recipient Name: ${user.displayName ?? user.email}');
+    print('Is Authenticated: ${currentUserId != null}');
+
+    
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in')),
+      );
+      return;
+    }
 
     final svc = context.read<FirestoreService>();
     try {
-      await svc.addFriend(currentUserId, user.userId);
+      await svc.sendFriendRequest(user.userId);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Friend request sent to ${user.displayName ?? user.email}')),
       );
-      setState(() {}); // refresh UI if you want to show "Added"
+      setState(() {});
     } catch (e) {
+      print('❌ Error details: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to add friend: $e')),
       );

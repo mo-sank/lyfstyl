@@ -26,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<List<(LogEntry, MediaItem?)>> _logsFuture;
   bool _isDeleting = false;
   late Future<List<UserProfile>> _friendsFuture;
+  late Future<List<UserProfile>> _friendRequestsFuture;
 
   @override
   void initState() {
@@ -33,12 +34,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _profileFuture = _loadProfile();
     _logsFuture = _loadLogsWithMedia();
     _friendsFuture = _loadFriends();
+    _friendRequestsFuture = _loadFriendRequests();
+
   }
 
   Future<List<UserProfile>> _loadFriends() async {
     final user = FirebaseAuth.instance.currentUser!;
     final svc = context.read<FirestoreService>();
     return await svc.getFriends(user.uid);
+  }
+
+  Future<List<UserProfile>> _loadFriendRequests() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    return await svc.getFriendRequests(user.uid);
   }
 
   Future<UserProfile?> _loadProfile() async {
@@ -375,6 +384,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Friend Requests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<UserProfile>>(
+                    future: _friendRequestsFuture,
+                    builder: (context, requestsSnapshot) {
+                      if (requestsSnapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final requests = requestsSnapshot.data ?? [];
+                      if (requests.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text('No friend requests', style: TextStyle(color: Colors.grey)),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: requests.length,
+                        itemBuilder: (context, index) {
+                          final requester = requests[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: requester.avatarUrl != null 
+                                ? NetworkImage(requester.avatarUrl!) 
+                                : null,
+                              child: requester.avatarUrl == null 
+                                ? const Icon(Icons.person) 
+                                : null,
+                            ),
+                            title: Text(requester.displayName ?? requester.username ?? requester.email),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () async {
+                                    final svc = context.read<FirestoreService>();
+                                    await svc.acceptFriendRequest(
+                                      FirebaseAuth.instance.currentUser!.uid, 
+                                      requester.userId
+                                    );
+                                    // Refresh friend requests and friends
+                                    setState(() {
+                                      _friendRequestsFuture = _loadFriendRequests();
+                                      _friendsFuture = _loadFriends();
+                                    });
+                                    print('Futures reloaded');
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () async {
+                                    final svc = context.read<FirestoreService>();
+                                    await svc.declineFriendRequest(
+                                      FirebaseAuth.instance.currentUser!.uid, 
+                                      requester.userId
+                                    );
+                                    // Refresh friend requests
+                                    setState(() {
+                                      _friendRequestsFuture = _loadFriendRequests();
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
 
                   const SizedBox(height: 24),
                   const Divider(),
