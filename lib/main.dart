@@ -10,6 +10,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
+import 'services/user_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
@@ -38,6 +39,7 @@ class LyfstylApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider<AuthService>(create: (context) => AuthService()),
         Provider<FirestoreService>(create: (context) => FirestoreService()),
+        Provider<UserService>(create: (context) => UserService()),
       ],
       child: Builder(
         builder: (context) {
