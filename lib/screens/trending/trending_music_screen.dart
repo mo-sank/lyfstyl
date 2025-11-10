@@ -1,9 +1,11 @@
-
-
 // Mohamed Sankari - 4 hours
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/trending_service.dart';
+import '../../services/firestore_service.dart';
+import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
 
 class TrendingMusicScreen extends StatefulWidget {
@@ -61,10 +63,45 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
     );
   }
 
+  Future<void> _bookmarkTrendingItem(
+    BuildContext context,
+    TrendingItem item,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save bookmarks')),
+      );
+      return;
+    }
+
+    final firestore = context.read<FirestoreService>();
+
+    try {
+      await firestore.bookmarkMedia(
+        userId: user.uid,
+        mediaType: MediaType.music,
+        title: item.title,
+        creator: item.artist,
+        coverUrl: item.coverUrl,
+        metadata: {'source': 'lastfm', 'musicData': item.musicData},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Saved to bookmarks')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to bookmark track')));
+    }
+  }
+
   Widget _buildRichDataDisplay(TrendingItem item) {
     final data = item.musicData;
     final List<Widget> infoWidgets = [];
-    
+
     // Album
     if (data['album'] != null && data['album'].toString().isNotEmpty) {
       infoWidgets.add(
@@ -81,11 +118,11 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
         ),
       );
     }
-    
+
     // Duration
     if (data['durationSeconds'] != null) {
       final duration = Duration(seconds: data['durationSeconds'] as int);
-      final durationText = duration.inMinutes > 0 
+      final durationText = duration.inMinutes > 0
           ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
           : '${duration.inSeconds}s';
       infoWidgets.add(
@@ -102,7 +139,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
         ),
       );
     }
-    
+
     // Year
     if (data['year'] != null) {
       infoWidgets.add(
@@ -119,7 +156,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
         ),
       );
     }
-    
+
     // Genres
     if (data['genres'] != null && (data['genres'] as List).isNotEmpty) {
       final genres = (data['genres'] as List).take(2).join(', ');
@@ -137,16 +174,12 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
         ),
       );
     }
-    
+
     if (infoWidgets.isEmpty) {
       return const SizedBox.shrink();
     }
-    
-    return Wrap(
-      spacing: 12,
-      runSpacing: 2,
-      children: infoWidgets,
-    );
+
+    return Wrap(spacing: 12, runSpacing: 2, children: infoWidgets);
   }
 
   @override
@@ -179,7 +212,9 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (_filtered.isEmpty) {
-                    return const Center(child: Text('No results. Try different keywords.'));
+                    return const Center(
+                      child: Text('No results. Try different keywords.'),
+                    );
                   }
                   return ListView.separated(
                     itemCount: _filtered.length,
@@ -191,9 +226,9 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  item.coverUrl!, 
-                                  width: 56, 
-                                  height: 56, 
+                                  item.coverUrl!,
+                                  width: 56,
+                                  height: 56,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
@@ -203,7 +238,10 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                                         color: Colors.grey[300],
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.music_note, color: Colors.grey),
+                                      child: const Icon(
+                                        Icons.music_note,
+                                        color: Colors.grey,
+                                      ),
                                     );
                                   },
                                 ),
@@ -215,13 +253,24 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                                   color: Colors.grey[300],
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.music_note, color: Colors.grey),
+                                child: const Icon(
+                                  Icons.music_note,
+                                  color: Colors.grey,
+                                ),
                               ),
-                        title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        title: Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(item.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(
+                              item.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             if (item.musicData.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               _buildRichDataDisplay(item),
@@ -234,16 +283,31 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                             Wrap(
                               spacing: 6,
                               children: item.sources
-                                  .map((s) => Chip(
-                                    label: Text('$s'),
-                                    backgroundColor: Colors.blue[50],
-                                    labelStyle: const TextStyle(fontSize: 10),
-                                  ))
+                                  .map(
+                                    (s) => Chip(
+                                      label: Text('$s'),
+                                      backgroundColor: Colors.blue[50],
+                                      labelStyle: const TextStyle(fontSize: 10),
+                                    ),
+                                  )
                                   .toList(),
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
+                              icon: const Icon(
+                                Icons.bookmark_border,
+                                color: Colors.orangeAccent,
+                              ),
+                              onPressed: () =>
+                                  _bookmarkTrendingItem(context, item),
+                              tooltip: 'Save bookmark',
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.blue,
+                              ),
                               onPressed: () => _logTrendingItem(context, item),
                               tooltip: 'Log this track',
                             ),

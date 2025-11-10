@@ -1,5 +1,3 @@
-
-
 // Mohamed Sankari - 4 hours
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,19 +6,27 @@ import '../models/user_profile.dart';
 import '../models/media_item.dart';
 import '../models/log_entry.dart';
 import '../models/collection.dart';
+import '../models/bookmark_item.dart';
 
 class FirestoreService {
   FirestoreService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
   // Collections
-  CollectionReference<Map<String, dynamic>> get usersCol => _db.collection('users');
-  CollectionReference<Map<String, dynamic>> get mediaCol => _db.collection('mediaItems');
-  CollectionReference<Map<String, dynamic>> get logsCol => _db.collection('logs');
-  CollectionReference<Map<String, dynamic>> get collectionsCol => _db.collection('collections');
-  CollectionReference<Map<String, dynamic>> get trendingCol => _db.collection('trending');
+  CollectionReference<Map<String, dynamic>> get usersCol =>
+      _db.collection('users');
+  CollectionReference<Map<String, dynamic>> get mediaCol =>
+      _db.collection('mediaItems');
+  CollectionReference<Map<String, dynamic>> get logsCol =>
+      _db.collection('logs');
+  CollectionReference<Map<String, dynamic>> get collectionsCol =>
+      _db.collection('collections');
+  CollectionReference<Map<String, dynamic>> get trendingCol =>
+      _db.collection('trending');
+  CollectionReference<Map<String, dynamic>> get bookmarksCol =>
+      _db.collection('bookmarks');
 
   // Ensure a profile exists for the signed-in user
   Future<void> ensureUserProfile(User user) async {
@@ -40,13 +46,17 @@ class FirestoreService {
         createdAt: now,
         updatedAt: now,
       );
-      await usersCol.doc(user.uid).set(profile.toMap(), SetOptions(merge: true));
+      await usersCol
+          .doc(user.uid)
+          .set(profile.toMap(), SetOptions(merge: true));
     }
   }
 
   // Users: create/update/get profile
   Future<void> upsertUserProfile(UserProfile profile) async {
-    await usersCol.doc(profile.userId).set(profile.toMap(), SetOptions(merge: true));
+    await usersCol
+        .doc(profile.userId)
+        .set(profile.toMap(), SetOptions(merge: true));
   }
 
   /// Gets a user profile by their Firebase UID
@@ -91,7 +101,10 @@ class FirestoreService {
     return MediaItem.fromDoc(doc);
   }
 
-  Future<MediaItem?> findMediaByTitleAndType(String title, MediaType type) async {
+  Future<MediaItem?> findMediaByTitleAndType(
+    String title,
+    MediaType type,
+  ) async {
     final snapshot = await mediaCol
         .where('title', isEqualTo: title)
         .where('type', isEqualTo: type.name)
@@ -110,8 +123,8 @@ class FirestoreService {
     if (existing != null) return existing;
     final now = DateTime.now();
     final dynamic item;
-     if (type == MediaType.book) {
-      item  = BookItem(
+    if (type == MediaType.book) {
+      item = BookItem(
         mediaId: 'temp',
         source: MediaSource.manual,
         title: title,
@@ -124,22 +137,22 @@ class FirestoreService {
         createdAt: now,
         updatedAt: now,
       );
-
     } else {
-     item = MediaItem(
-      mediaId: 'temp',
-      type: type,
-      source: MediaSource.manual,
-      title: title,
-      subtitle: null,
-      creator: creator,
-      releaseDate: null,
-      genres: const [],
-      coverUrl: null,
-      externalIds: const {},
-      createdAt: now,
-      updatedAt: now,
-    );}
+      item = MediaItem(
+        mediaId: 'temp',
+        type: type,
+        source: MediaSource.manual,
+        title: title,
+        subtitle: null,
+        creator: creator,
+        releaseDate: null,
+        genres: const [],
+        coverUrl: null,
+        externalIds: const {},
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
     final id = await createMediaItem(item);
     final created = await getMediaItem(id);
     return created!;
@@ -151,8 +164,13 @@ class FirestoreService {
     // Firestore whereIn limit is 10
     const int batchSize = 10;
     for (var i = 0; i < ids.length; i += batchSize) {
-      final slice = ids.sublist(i, i + batchSize > ids.length ? ids.length : i + batchSize);
-      final snap = await mediaCol.where(FieldPath.documentId, whereIn: slice).get();
+      final slice = ids.sublist(
+        i,
+        i + batchSize > ids.length ? ids.length : i + batchSize,
+      );
+      final snap = await mediaCol
+          .where(FieldPath.documentId, whereIn: slice)
+          .get();
       for (final doc in snap.docs) {
         final item = MediaItem.fromDoc(doc);
         result[item.mediaId] = item;
@@ -199,12 +217,96 @@ class FirestoreService {
     return snapshot.docs.map((d) => CollectionModel.fromDoc(d)).toList();
   }
 
-  Future<void> updateCollection(String collectionId, Map<String, dynamic> data) async {
+  Future<void> updateCollection(
+    String collectionId,
+    Map<String, dynamic> data,
+  ) async {
     data['updatedAt'] = FieldValue.serverTimestamp();
     await collectionsCol.doc(collectionId).update(data);
   }
 
   Future<void> deleteCollection(String collectionId) async {
     await collectionsCol.doc(collectionId).delete();
+  }
+
+  // Bookmarks
+  Future<List<BookmarkItem>> getUserBookmarks(String userId) async {
+    final snapshot = await bookmarksCol
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs.map((doc) => BookmarkItem.fromDoc(doc)).toList();
+  }
+
+  Future<bool> isBookmarked(String userId, String mediaId) async {
+    final snapshot = await bookmarksCol
+        .where('userId', isEqualTo: userId)
+        .where('mediaId', isEqualTo: mediaId)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
+  Future<BookmarkItem> bookmarkMedia({
+    required String userId,
+    required MediaType mediaType,
+    required String title,
+    String? creator,
+    String? subtitle,
+    String? coverUrl,
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    final media = await getOrCreateMedia(
+      title: title,
+      type: mediaType,
+      creator: creator,
+    );
+
+    final existing = await bookmarksCol
+        .where('userId', isEqualTo: userId)
+        .where('mediaId', isEqualTo: media.mediaId)
+        .limit(1)
+        .get();
+
+    final now = DateTime.now();
+    final payload = {
+      'userId': userId,
+      'mediaId': media.mediaId,
+      'mediaType': media.type.name,
+      'title': media.title,
+      'creator': creator ?? media.creator,
+      'subtitle': subtitle ?? media.subtitle,
+      'coverUrl': coverUrl ?? media.coverUrl,
+      'metadata': metadata,
+      'updatedAt': Timestamp.fromDate(now),
+    };
+
+    DocumentReference<Map<String, dynamic>> ref;
+    if (existing.docs.isNotEmpty) {
+      ref = existing.docs.first.reference;
+      await ref.set(payload, SetOptions(merge: true));
+    } else {
+      ref = await bookmarksCol.add({
+        ...payload,
+        'createdAt': Timestamp.fromDate(now),
+      });
+    }
+
+    final fresh = await ref.get();
+    return BookmarkItem.fromDoc(fresh);
+  }
+
+  Future<void> removeBookmarkByMedia(String userId, String mediaId) async {
+    final existing = await bookmarksCol
+        .where('userId', isEqualTo: userId)
+        .where('mediaId', isEqualTo: mediaId)
+        .limit(1)
+        .get();
+    if (existing.docs.isEmpty) return;
+    await existing.docs.first.reference.delete();
+  }
+
+  Future<void> removeBookmark(String bookmarkId) async {
+    await bookmarksCol.doc(bookmarkId).delete();
   }
 }
