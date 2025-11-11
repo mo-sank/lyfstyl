@@ -52,11 +52,11 @@ class LyfstylApp extends StatelessWidget {
             routes: [
               // Public profile route - MUST come first to match before '/'
               GoRoute(
-                path: '/profile/:username',
+                path: '/profile/:userId',
                 builder: (context, state) {
-                  final username = state.pathParameters['username']!;
-                  print('DEBUG ROUTER: Building PublicProfileScreen for username: $username');
-                  return PublicProfileScreen(username: username);
+                  final userId = state.pathParameters['userId']!;
+                  print('DEBUG ROUTER: Building PublicProfileScreen for username: $userId');
+                  return PublicProfileScreen(userId: userId);
                 },
               ),
               
