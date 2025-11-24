@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/movie_service.dart';
@@ -262,9 +263,9 @@ class _MovieSearchScreenState extends State<MovieSearchScreen> {
                                   width: 50,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) =>
-                                      const Icon(Icons.movie),
+                                       Icon(MediaType.film.icon),
                                 )
-                              : const Icon(Icons.movie),
+                              :  Icon(MediaType.film.icon),
                           title: Text(movie.title),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

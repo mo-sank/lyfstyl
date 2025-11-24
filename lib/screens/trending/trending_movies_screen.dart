@@ -6,6 +6,7 @@ import '../../services/movie_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
+import '../../theme/media_type_theme.dart';
 
 class TrendingMoviesScreen extends StatefulWidget {
   const TrendingMoviesScreen({super.key});
@@ -132,7 +133,7 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(Icons.movie, color: Colors.grey, size: 30),
+      child:  Icon(MediaType.film.icon, color: Colors.grey, size: 30),
     );
   }
 
@@ -260,8 +261,8 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
                                                       width: 120,
                                                       height: 180,
                                                       color: Colors.grey[300],
-                                                      child: const Icon(
-                                                        Icons.movie,
+                                                      child: Icon(
+                                                        MediaType.film.icon,
                                                         color: Colors.grey,
                                                         size: 48,
                                                       ),

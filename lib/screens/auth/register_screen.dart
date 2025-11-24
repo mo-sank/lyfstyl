@@ -3,11 +3,13 @@
 // Mohamed Sankari - 2 hours
 
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/models/media_item.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'email_verification_screen.dart';
+import '../../theme/media_type_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  final MediaType _mediaType = MediaType.film;
 
   @override
   void dispose() {
@@ -83,8 +86,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo and Title
-                const Icon(
-                  Icons.movie,
+                 Icon(
+                  MediaType.film.icon,
                   size: 80,
                   color: Colors.blue,
                 ),

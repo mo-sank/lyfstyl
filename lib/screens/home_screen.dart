@@ -521,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.movie, color: Colors.white, size: 48),
+                  Icon(MediaType.film.icon, color: Colors.white, size: 48),
                 ],
               ),
             ),
