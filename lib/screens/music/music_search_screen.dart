@@ -1,6 +1,7 @@
 // Mohamed Sankari - 6 hours
 
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/trending_service.dart';
@@ -376,7 +377,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         color: Colors.blue[800],
         fontWeight: FontWeight.w500,
       ),
-      avatar: const Icon(Icons.music_note, size: 16, color: Colors.blue),
+      avatar: Icon(MediaType.music.icon, size: 16, color: Colors.blue),
     );
   }
 
@@ -469,7 +470,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.music_note, color: Colors.blue[800]),
+                        Icon(MediaType.music.icon, color: Colors.blue[800]),
                         const SizedBox(width: 8),
                         Text(
                           '${_selectedGenre!.toUpperCase()} Music',
@@ -624,16 +625,16 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                           item.coverUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.music_note,
+                            return Icon(
+                              MediaType.music.icon,
                               size: 40,
                               color: Colors.grey,
                             );
                           },
                         ),
                       )
-                    : const Icon(
-                        Icons.music_note,
+                    : Icon(
+                        MediaType.music.icon,
                         size: 40,
                         color: Colors.grey,
                       ),

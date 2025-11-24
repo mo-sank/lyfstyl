@@ -768,7 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildEmptyState(
               'No music logged yet',
               'Start tracking your favorite songs and albums!',
-              Icons.music_note_outlined,
+              MediaType.music.icon,
             )
           else
             ..._buildMediaList(logs),

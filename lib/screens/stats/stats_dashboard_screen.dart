@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lyfstyl/models/media_item.dart';
 import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
@@ -169,7 +170,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               child: _buildStatCard(
                 'Music Time',
                 _statsService.formatDuration(stats.totalMusicMinutes),
-                Icons.music_note,
+                MediaType.music.icon,
                 Colors.purple,
               ),
             ),

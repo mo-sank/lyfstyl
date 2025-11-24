@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/models/media_item.dart';
 import '../../services/enhanced_trending_service.dart';
 import '../logs/enhanced_add_log_screen.dart';
+import '../../theme/media_type_theme.dart';
 
 class EnhancedTrendingMusicScreen extends StatefulWidget {
   const EnhancedTrendingMusicScreen({super.key});
@@ -202,11 +204,11 @@ class _EnhancedTrendingMusicScreenState extends State<EnhancedTrendingMusicScree
                           item.coverUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.music_note, size: 40, color: Colors.grey);
+                            return Icon(MediaType.music.icon, size: 40, color: Colors.grey);
                           },
                         ),
                       )
-                    : const Icon(Icons.music_note, size: 40, color: Colors.grey),
+                    :  Icon(MediaType.music.icon, size: 40, color: Colors.grey),
               ),
               
               const SizedBox(width: 16),

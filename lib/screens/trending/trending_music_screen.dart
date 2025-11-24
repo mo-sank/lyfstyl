@@ -7,7 +7,7 @@ import '../../services/trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
-
+import '../../theme/media_type_theme.dart';
 class TrendingMusicScreen extends StatefulWidget {
   const TrendingMusicScreen({super.key});
 
@@ -238,8 +238,8 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                                         color: Colors.grey[300],
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
-                                        Icons.music_note,
+                                      child: Icon(
+                                        MediaType.music.icon,
                                         color: Colors.grey,
                                       ),
                                     );
@@ -253,8 +253,8 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                                   color: Colors.grey[300],
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(
-                                  Icons.music_note,
+                                child: Icon(
+                                  MediaType.music.icon,
                                   color: Colors.grey,
                                 ),
                               ),
