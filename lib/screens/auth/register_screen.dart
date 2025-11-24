@@ -89,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                  Icon(
                   MediaType.film.icon,
                   size: 80,
-                  color: Colors.blue,
+                  color: MediaType.film.color,
                 ),
                 const SizedBox(height: 16),
                 const Text(

@@ -377,7 +377,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         color: Colors.blue[800],
         fontWeight: FontWeight.w500,
       ),
-      avatar: Icon(MediaType.music.icon, size: 16, color: Colors.blue),
+      avatar: Icon(MediaType.music.icon, size: 16, color: MediaType.music.color),
     );
   }
 
@@ -470,7 +470,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(MediaType.music.icon, color: Colors.blue[800]),
+                        Icon(MediaType.music.icon, color: MediaType.music.color),
                         const SizedBox(width: 8),
                         Text(
                           '${_selectedGenre!.toUpperCase()} Music',
