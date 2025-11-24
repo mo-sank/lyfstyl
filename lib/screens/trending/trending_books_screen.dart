@@ -3,11 +3,13 @@
 // 5 Hours
 
 import 'package:flutter/material.dart';
+import '../../models/media_item.dart';
 import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../models/nyt_book.dart';
+import '../../theme/media_type_theme.dart';
 
 class TrendingBooksScreen extends StatefulWidget {
   const TrendingBooksScreen({super.key});
@@ -306,7 +308,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
                                                         width: 120,
                                                         height: 180,
                                                         color: Colors.grey[300],
-                                                        child: const Icon(Icons.book, color: Colors.grey, size: 48),
+                                                        child: Icon(MediaType.book.icon, color: Colors.grey, size: 48),
                                                       );
                                                     },
                                                   ),

@@ -4,9 +4,11 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/models/media_item.dart';
 import '../../services/books_service.dart';
 import '../logs/add_log_screen.dart';
 import '../../models/book.dart';
+import '../../theme/media_type_theme.dart';
 
 class SearchBooksScreen extends StatefulWidget {
   const SearchBooksScreen({super.key});
@@ -230,7 +232,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                           width: 56,
                                           height: 56,
                                           color: Colors.grey[300],
-                                          child: const Icon(Icons.book, color: Colors.grey),
+                                          child: Icon(MediaType.book.icon, color: Colors.grey),
                                         );
                                       },
                                     ),
@@ -242,7 +244,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                       color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.book, color: Colors.grey),
+                                    child: Icon(MediaType.book.icon, color: Colors.grey),
                                   ),
                             title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                             subtitle: Text(item.authors != null ? item.authors![0] : '', maxLines: 1, overflow: TextOverflow.ellipsis),

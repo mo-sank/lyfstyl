@@ -602,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.book, color: Colors.white, size: 48),
+                  Icon(MediaType.book.icon, color: Colors.white, size: 48),
                 ],
               ),
             ),
@@ -647,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildEmptyState(
               'No books logged yet',
               'Start tracking your reading journey!',
-              Icons.book_outlined,
+              MediaType.book.icon,
             )
           else
             ..._buildMediaList(logs),

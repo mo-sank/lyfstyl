@@ -2,6 +2,7 @@
 // Julia: (3 hours) Profile page sharing and logs showing up on profile
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
@@ -249,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
                               leading: CircleAvatar(
-                                child: Icon(_getMediaIcon(log.mediaType)),
+                                child: Icon(log.mediaType.icon),
                               ),
                               title: Text(media?.title ?? 'Unknown ${log.mediaType.name}'),
                               subtitle: Column(
@@ -289,23 +290,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       ),
     );
-  }
-
-  IconData _getMediaIcon(MediaType type) {
-    switch (type) {
-      case MediaType.film:
-        return Icons.movie;
-      case MediaType.book:
-        return Icons.book;
-      case MediaType.album:
-        return Icons.album;
-      case MediaType.song:
-        return Icons.music_note;
-      case MediaType.show:
-        return Icons.tv;
-      case MediaType.music:
-        return Icons.music_note;
-    }
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../services/stats_service.dart';
@@ -188,7 +189,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           _buildStatCard(
             'Pages Read',
             stats.totalBookPages.toString(),
-            Icons.book,
+            MediaType.book.icon,
             Colors.green,
           ),
         ],
@@ -252,7 +253,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                Icon(_getMediaTypeIcon(entry.key), size: 20),
+                Icon(entry.key.icon, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -266,7 +267,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                       LinearProgressIndicator(
                         value: entry.value / stats.totalItemsLogged,
                         backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(_getMediaTypeColor(entry.key)),
+                        valueColor: AlwaysStoppedAnimation<Color>(entry.key.color),
                       ),
                     ],
                   ),
@@ -452,7 +453,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                Icon(_getMediaTypeIcon(log.mediaType), size: 20),
+                Icon(entry.key.icon, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -488,39 +489,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     );
   }
 
-  IconData _getMediaTypeIcon(MediaType type) {
-    switch (type) {
-      case MediaType.music:
-        return Icons.music_note;
-      case MediaType.film:
-        return Icons.movie;
-      case MediaType.book:
-        return Icons.book;
-      case MediaType.album:
-        return Icons.album;
-      case MediaType.song:
-        return Icons.audiotrack;
-      case MediaType.show:
-        return Icons.tv;
-    }
-  }
 
-  Color _getMediaTypeColor(MediaType type) {
-    switch (type) {
-      case MediaType.music:
-        return Colors.purple;
-      case MediaType.film:
-        return Colors.red;
-      case MediaType.book:
-        return Colors.green;
-      case MediaType.album:
-        return Colors.purple;
-      case MediaType.song:
-        return Colors.purple;
-      case MediaType.show:
-        return Colors.orange;
-    }
-  }
 
   Color _getRankColor(int index) {
     switch (index) {
