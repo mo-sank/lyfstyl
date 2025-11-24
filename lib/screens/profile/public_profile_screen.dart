@@ -1,6 +1,7 @@
 //Contributions
 //Julia: (2 hours) Public profile class
 import 'package:flutter/material.dart';
+import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_profile.dart';
@@ -228,7 +229,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           final (log, media) = logsWithMedia[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              child: Icon(_getMediaIcon(log.mediaType)),
+                              child: Icon(log.mediaType.icon),
                             ),
                             title: Text(media?.title ?? 'Unknown ${log.mediaType.name}'),
                             subtitle: Text(
@@ -249,15 +250,4 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     );
   }
 
-  // Helper method to get media icon
-  IconData _getMediaIcon(MediaType type) {
-    switch (type) {
-      case MediaType.film: return Icons.movie;
-      case MediaType.book: return Icons.book;
-      case MediaType.album: return Icons.album;
-      case MediaType.song: return Icons.music_note;
-      case MediaType.show: return Icons.tv;
-      case MediaType.music: return Icons.music_note;
-    }
-  }
 }

@@ -318,15 +318,11 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                   ),
                                 );
                               },
-                            ),
-                          ],
+                            ),);
+                        }),
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
+                    ]));}
+      
+      
+    
   }
-}
