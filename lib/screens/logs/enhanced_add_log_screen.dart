@@ -31,7 +31,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
   final _reviewCtrl = TextEditingController();
   final _playCountCtrl = TextEditingController();
   
-  MediaType _type = MediaType.film;
+  MediaType _type = MediaType.movie;
   double? _rating;
   DateTime _consumedAt = DateTime.now();
   bool _saving = false;
@@ -77,7 +77,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
           break;
         case 'film':
         default:
-          _type = MediaType.film;
+          _type = MediaType.movie;
           break;
       }
     }
@@ -182,7 +182,7 @@ class _EnhancedAddLogScreenState extends State<EnhancedAddLogScreen> {
                           child: Text(t.name.toUpperCase()),
                         ))
                     .toList(),
-                onChanged: (v) => setState(() => _type = v ?? MediaType.film),
+                onChanged: (v) => setState(() => _type = v ?? MediaType.movie),
                 decoration: const InputDecoration(
                   labelText: 'Media Type',
                   border: OutlineInputBorder(),

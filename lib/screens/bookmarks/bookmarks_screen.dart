@@ -80,11 +80,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
             final grouped = _groupByType(bookmarks);
             final ordering = [
-              MediaType.film,
-              MediaType.show,
+              MediaType.movie,
+
               MediaType.book,
-              MediaType.album,
-              MediaType.song,
+
               MediaType.music,
             ];
 
@@ -123,14 +122,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 
   String _sectionTitle(MediaType type) {
-    if (type == MediaType.film || type == MediaType.show) {
+    if (type == MediaType.movie ) {
       return 'Movies & Shows';
     }
     if (type == MediaType.book) {
       return 'Books';
     }
-    if (type == MediaType.album ||
-        type == MediaType.song ||
+    if (
         type == MediaType.music) {
       return 'Music';
     }

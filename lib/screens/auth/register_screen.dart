@@ -26,7 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  final MediaType _mediaType = MediaType.film;
+  final MediaType _mediaType = MediaType.movie;
 
   @override
   void dispose() {
@@ -87,9 +87,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 // Logo and Title
                  Icon(
-                  MediaType.film.icon,
+                  MediaType.movie.icon,
                   size: 80,
-                  color: MediaType.film.color,
+                  color: MediaType.movie.color,
                 ),
                 const SizedBox(height: 16),
                 const Text(

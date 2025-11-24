@@ -12,7 +12,7 @@ void main() {
         logId: 'log-id',
         userId: 'user-id',
         mediaId: 'media-id',
-        mediaType: MediaType.film,
+        mediaType: MediaType.movie,
         consumedAt: now,
         createdAt: now,
         updatedAt: now,
@@ -20,7 +20,7 @@ void main() {
 
       expect(log.logId, 'log-id');
       expect(log.userId, 'user-id');
-      expect(log.mediaType, MediaType.film);
+      expect(log.mediaType, MediaType.movie);
       expect(log.rating, isNull);
       expect(log.tags, isEmpty);
     });

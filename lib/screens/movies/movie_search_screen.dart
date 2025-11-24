@@ -108,7 +108,7 @@ class _MovieSearchScreenState extends State<MovieSearchScreen> {
     try {
       await firestore.bookmarkMedia(
         userId: user.uid,
-        mediaType: MediaType.film,
+        mediaType: MediaType.movie,
         title: movie.title,
         creator: movie.director,
         coverUrl: movie.posterUrl,
@@ -263,9 +263,9 @@ class _MovieSearchScreenState extends State<MovieSearchScreen> {
                                   width: 50,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) =>
-                                       Icon(MediaType.film.icon),
+                                       Icon(MediaType.movie.icon),
                                 )
-                              :  Icon(MediaType.film.icon),
+                              :  Icon(MediaType.movie.icon),
                           title: Text(movie.title),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

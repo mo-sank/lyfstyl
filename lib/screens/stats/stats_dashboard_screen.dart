@@ -179,8 +179,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
               child: _buildStatCard(
                 'Film Time',
                 _statsService.formatDuration(stats.totalFilmMinutes),
-                MediaType.film.icon,
-                MediaType.film.color,
+                MediaType.movie.icon,
+                MediaType.movie.color,
               ),
             ),
           ],

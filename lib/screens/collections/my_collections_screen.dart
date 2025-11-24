@@ -56,7 +56,7 @@ class _MyCollectionsScreenState extends State<MyCollectionsScreen> {
       if (media == null) continue;
       
       switch (media.type) {
-        case MediaType.film:
+        case MediaType.movie:
           filmCount++;
           if (lastFilm == null || log.consumedAt.isAfter(lastFilm)) {
             lastFilm = log.consumedAt;
@@ -171,7 +171,7 @@ class _MyCollectionsScreenState extends State<MyCollectionsScreen> {
                     title: 'Film',
                     count: data.filmCount,
                     lastLogged: data.lastFilm,
-                    onTap: () => _openDefaultList(context, 'Film', MediaType.film),
+                    onTap: () => _openDefaultList(context, 'Film', MediaType.movie),
                     imageUrl: data.filmCover,
                     isDefault: true,
                   ),

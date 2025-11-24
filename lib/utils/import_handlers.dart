@@ -119,7 +119,7 @@ class LetterboxdImportHandler implements ImportHandler {
     
     final media = await svc.getOrCreateMedia(
       title: movie.title,
-      type: MediaType.film,
+      type: MediaType.movie,
       creator: movie.director,
     );
 
@@ -129,7 +129,7 @@ class LetterboxdImportHandler implements ImportHandler {
       logId: 'temp',
       userId: userId,
       mediaId: media.mediaId,
-      mediaType: MediaType.film,
+      mediaType: MediaType.movie,
       rating: row['Rating'],
       consumedAt: watchedAt ?? now,
       createdAt: now,

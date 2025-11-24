@@ -102,7 +102,7 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
     try {
       await firestore.bookmarkMedia(
         userId: user.uid,
-        mediaType: MediaType.film,
+        mediaType: MediaType.movie,
         title: movie.title,
         creator: movie.director,
         coverUrl: movie.posterUrl,
@@ -133,7 +133,7 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(8),
       ),
-      child:  Icon(MediaType.film.icon, color: Colors.grey, size: 30),
+      child:  Icon(MediaType.movie.icon, color: Colors.grey, size: 30),
     );
   }
 
@@ -262,7 +262,7 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
                                                       height: 180,
                                                       color: Colors.grey[300],
                                                       child: Icon(
-                                                        MediaType.film.icon,
+                                                        MediaType.movie.icon,
                                                         color: Colors.grey,
                                                         size: 48,
                                                       ),

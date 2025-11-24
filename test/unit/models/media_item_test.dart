@@ -9,7 +9,7 @@ void main() {
       final now = DateTime.now();
       final item = MediaItem(
         mediaId: 'test-id',
-        type: MediaType.film,
+        type: MediaType.movie,
         source: MediaSource.manual,
         title: 'Test Movie',
         createdAt: now,
@@ -17,7 +17,7 @@ void main() {
       );
 
       expect(item.mediaId, 'test-id');
-      expect(item.type, MediaType.film);
+      expect(item.type, MediaType.movie);
       expect(item.title, 'Test Movie');
       expect(item.genres, isEmpty);
     });
@@ -58,7 +58,7 @@ void main() {
         updatedAt: now,
       );
 
-      expect(film.type, MediaType.film);
+      expect(film.type, MediaType.movie);
       expect(film.director, 'Test Director');
     });
 

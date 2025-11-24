@@ -2,8 +2,32 @@
 // Julia: (1 hour) Media type now includes albums, songs, and shows
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lyfstyl/screens/flutter/packages/flutter/lib/rendering.dart';
+import 'package:flutter/material.dart';
+import "package:lyfstyl/screens/trending/trending_books_screen.dart";
+import "package:lyfstyl/screens/trending/trending_movies_screen.dart";
+import "package:lyfstyl/screens/trending/trending_music_screen.dart";
+import 'package:lyfstyl/screens/music/music_search_screen.dart';
+import 'package:lyfstyl/screens/trending/search_filter_books_screen.dart';
+import 'package:lyfstyl/screens/movies/movie_search_screen.dart';
 
-enum MediaType { film, book, album, song, show, music }
+
+
+enum MediaType { 
+  movie("Movies & Shows",Icons.movie,Color(0xFFFF6F61),"movies",TrendingMoviesScreen(),MovieSearchScreen()), 
+  book("Books",Icons.menu_book, Color(0xFFFFC857),"books", TrendingBooksScreen(),SearchBooksScreen()),
+   music("Music",Icons.music_note,Color(0xFF00C2A8),"tracks",TrendingMusicScreen(),MusicSearchScreen());    
+
+      final String title;
+      final IconData icon;
+      final Color color;
+      final String unit;
+      final dynamic trending;
+      final dynamic search;
+
+      const MediaType(this.title, this.icon, this.color, this.unit, this.trending, this.search);
+  }
+
 
 enum MediaSource { manual, letterboxd, goodreads, spotify, other }
 
@@ -58,7 +82,7 @@ class MediaItem {
     switch (type) {
       case MediaType.book:
         return BookItem.fromDoc(doc);
-      case MediaType.film:
+      case MediaType.movie:
         return FilmItem.fromDoc(doc);
       default:
         return MediaItem(
@@ -80,20 +104,14 @@ class MediaItem {
 
   static MediaType _parseMediaType(String? value) {
     switch (value) {
-      case 'film':
-        return MediaType.film;
+      case 'movie':
+        return MediaType.movie;
       case 'book':
         return MediaType.book;
-      case 'album':
-        return MediaType.album;
-      case 'song':
-        return MediaType.song;
-      case 'show':
-        return MediaType.show;
       case 'music':
         return MediaType.music;
       default:
-        return MediaType.film;
+        return MediaType.movie;
     }
   }
 
@@ -130,7 +148,7 @@ class FilmItem extends MediaItem {
     super.externalIds,
     this.director,
   }) : super(
-    type: MediaType.film,
+    type: MediaType.movie,
   );
 
    @override

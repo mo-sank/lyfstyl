@@ -62,20 +62,14 @@ class BookmarkItem {
 
   static MediaType _parseMediaType(String? value) {
     switch (value) {
-      case 'film':
-        return MediaType.film;
+      case 'movie':
+        return MediaType.movie;
       case 'book':
         return MediaType.book;
-      case 'album':
-        return MediaType.album;
-      case 'song':
-        return MediaType.song;
-      case 'show':
-        return MediaType.show;
       case 'music':
         return MediaType.music;
       default:
-        return MediaType.film;
+        return MediaType.movie;
     }
   }
 }

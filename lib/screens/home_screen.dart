@@ -4,7 +4,6 @@
 // maya poghosyan
 import 'package:flutter/material.dart';
 import 'package:lyfstyl/screens/import/new_import_screen.dart';
-import 'package:lyfstyl/screens/trending/books_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
@@ -17,11 +16,7 @@ import 'profile/profile_screen.dart';
 import 'logs/add_log_screen.dart';
 import 'collections/my_collections_screen.dart';
 import 'bookmarks/bookmarks_screen.dart';
-import 'trending/trending_music_screen.dart';
-import 'trending/trending_movies_screen.dart';
-import 'music/music_search_screen.dart';
-import 'movies/movie_search_screen.dart';
-import '../theme/media_type_theme.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,9 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
       color: const Color(0xFF8B5CF6),
     ),
     NavigationItem(
-      icon: MediaType.film.icon,
+      icon: MediaType.movie.icon,
       label: 'Movies',
-      color: MediaType.film.color,
+      color: MediaType.movie.color,
     ),
     NavigationItem(
       icon: MediaType.book.icon,
@@ -223,20 +218,17 @@ class _HomeScreenState extends State<HomeScreen> {
             return _buildAllMediaContent(allLogs);
           case 1:
             final movieLogs = _filterByType(allLogs, [
-              MediaType.film,
-              MediaType.show,
+              MediaType.movie,
             ]);
-            return _buildMoviesContent(movieLogs);
+            return _buildMediaContent(movieLogs,MediaType.movie);
           case 2:
             final bookLogs = _filterByType(allLogs, [MediaType.book]);
-            return _buildBooksContent(bookLogs);
+            return _buildMediaContent(bookLogs,MediaType.book);
           case 3:
             final musicLogs = _filterByType(allLogs, [
-              MediaType.album,
-              MediaType.song,
               MediaType.music,
             ]);
-            return _buildMusicContent(musicLogs);
+            return _buildMediaContent(musicLogs,MediaType.music);
           default:
             return _buildAllMediaContent(allLogs);
         }
@@ -245,11 +237,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAllMediaContent(List<(LogEntry, MediaItem?)> logs) {
-    final movieLogs = _filterByType(logs, [MediaType.film, MediaType.show]);
+    final movieLogs = _filterByType(logs, [MediaType.movie]);
     final bookLogs = _filterByType(logs, [MediaType.book]);
     final musicLogs = _filterByType(logs, [
-      MediaType.album,
-      MediaType.song,
       MediaType.music,
     ]);
 
@@ -298,8 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildStatCard(
                   'Movies & Shows',
                   movieLogs.length.toString(),
-                  MediaType.film.icon,
-                  MediaType.film.color,
+                  MediaType.movie.icon,
+                  MediaType.movie.color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -326,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Movies & Shows Section
           if (movieLogs.isNotEmpty) ...[
-            _buildSectionHeader('Movies & Shows', MediaType.film, () {
+            _buildSectionHeader('Movies & Shows', MediaType.movie, () {
               setState(() => _selectedIndex = 1);
             }),
             const SizedBox(height: 16),
@@ -475,7 +465,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMoviesContent(List<(LogEntry, MediaItem?)> logs) {
+
+
+Widget _buildMediaContent(List<(LogEntry, MediaItem?)> logs, MediaType type) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -486,12 +478,8 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             height: 120,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: type.color,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -502,8 +490,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Movies & Shows',
+                        Text(
+                          type.title,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -512,208 +500,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${logs.length} items logged',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(MediaType.film.icon, color: Colors.white, size: 48),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Quick actions for movies
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionCard(
-                  'Search Movies',
-                  Icons.search,
-                  const Color(0xFF3B82F6),
-                  () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const MovieSearchScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  'Trending',
-                  Icons.trending_up,
-                  const Color(0xFF8B5CF6),
-                  () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const TrendingMoviesScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          if (logs.isEmpty)
-            _buildEmptyState(
-              'No movies or shows logged yet',
-              'Start logging your favorite films and TV shows!',
-              Icons.movie_outlined,
-            )
-          else
-            ..._buildMediaList(logs),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBooksContent(List<(LogEntry, MediaItem?)> logs) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            height: 120,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6B7280), Color(0xFF4B5563)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Books',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${logs.length} books logged',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(MediaType.book.icon, color: Colors.white, size: 48),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Discover Books button
-          GestureDetector(
-            onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const BooksScreen()));
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.search, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text(
-                    'Discover Books',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Spacer(),
-                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          if (logs.isEmpty)
-            _buildEmptyState(
-              'No books logged yet',
-              'Start tracking your reading journey!',
-              MediaType.book.icon,
-            )
-          else
-            ..._buildMediaList(logs),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMusicContent(List<(LogEntry, MediaItem?)> logs) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Card
-          Container(
-            width: double.infinity,
-            height: 120,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF10B981), Color(0xFF059669)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Music',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${logs.length} tracks logged',
+                          '${logs.length} ${type.unit} logged',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 16,
@@ -733,13 +520,13 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  'Search Music',
+                  'Search ${type.unit}',
                   Icons.search,
-                  const Color(0xFF3B82F6),
+                  type.color,
                   () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const MusicSearchScreen(),
+                        builder: (_) => type.search,
                       ),
                     );
                   },
@@ -748,13 +535,13 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
-                  'Trending',
+                  'Trending ${type.name}',
                   Icons.trending_up,
-                  const Color(0xFF8B5CF6),
+                  type.color,
                   () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const TrendingMusicScreen(),
+                        builder: (_) =>  type.trending,
                       ),
                     );
                   },
@@ -766,9 +553,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (logs.isEmpty)
             _buildEmptyState(
-              'No music logged yet',
-              'Start tracking your favorite songs and albums!',
-              MediaType.music.icon,
+              'No ${type.unit} logged yet',
+              'Start tracking your favorite ${type.unit}!',
+              type.icon,
             )
           else
             ..._buildMediaList(logs),
@@ -776,6 +563,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+
+ 
 
   Widget _buildActionCard(
     String title,

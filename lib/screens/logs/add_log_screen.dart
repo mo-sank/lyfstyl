@@ -31,7 +31,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
   final _durationCtrl = TextEditingController();
   final _genresCtrl = TextEditingController();
   final _yearCtrl = TextEditingController();
-  MediaType _type = MediaType.film;
+  MediaType _type = MediaType.movie;
   double? _rating;
   DateTime _consumedAt = DateTime.now();
   bool _saving = false;
@@ -98,7 +98,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
           break;
         case 'film':
         default:
-          _type = MediaType.film;
+          _type = MediaType.movie;
           // Pre-fill film-specific data if available
           if (data['filmData'] != null) {
             final filmData = data['filmData'] as Map<String, dynamic>;
@@ -144,7 +144,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
           year: _year,
         );
         consumptionData = musicData.toMap();
-      } else if (_type == MediaType.film) {
+      } else if (_type == MediaType.movie) {
         consumptionData = {
           'director': _creatorCtrl.text.trim().isEmpty ? null : _creatorCtrl.text.trim(),
           'genres': _genres,
@@ -390,7 +390,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
                           child: Text(t.name.toUpperCase()),
                         ))
                     .toList(),
-                onChanged: (v) => setState(() => _type = v ?? MediaType.film),
+                onChanged: (v) => setState(() => _type = v ?? MediaType.movie),
                 decoration: const InputDecoration(labelText: 'Media Type'),
               ),
               const SizedBox(height: 12),
@@ -414,7 +414,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
               ],
               
               // Film-specific fields
-              if (_type == MediaType.film) ...[
+              if (_type == MediaType.movie) ...[
                 _buildFilmSpecificFields(),
                 const SizedBox(height: 12),
               ],

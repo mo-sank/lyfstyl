@@ -65,13 +65,13 @@ class LogEntry {
   static MediaType _parseMediaType(String? value) {
     switch (value) {
       case 'film':
-        return MediaType.film;
+        return MediaType.movie;
       case 'book':
         return MediaType.book;
       case 'music':
         return MediaType.music;
       default:
-        return MediaType.film;
+        return MediaType.movie;
     }
   }
 }

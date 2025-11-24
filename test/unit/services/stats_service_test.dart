@@ -31,7 +31,7 @@ void main() {
           logId: 'log1',
           userId: 'user1',
           mediaId: 'media1',
-          mediaType: MediaType.film,
+          mediaType: MediaType.movie,
           rating: 4.0,
           consumedAt: now,
           createdAt: now,
@@ -53,7 +53,7 @@ void main() {
 
       expect(stats.totalItemsLogged, 2);
       expect(stats.averageRating, 4.5);
-      expect(stats.mediaTypeCounts[MediaType.film], 1);
+      expect(stats.mediaTypeCounts[MediaType.movie], 1);
       expect(stats.mediaTypeCounts[MediaType.book], 1);
     });
 
@@ -94,7 +94,7 @@ void main() {
           logId: 'log1',
           userId: 'user1',
           mediaId: 'media1',
-          mediaType: MediaType.film,
+          mediaType: MediaType.movie,
           consumedAt: now,
           createdAt: now,
           updatedAt: now,

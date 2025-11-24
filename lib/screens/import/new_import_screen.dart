@@ -52,8 +52,8 @@ class NewImportScreen extends StatelessWidget {
                 _ImportCard(
                   title: 'Letterboxd',
                   description: 'Import your watched films from Letterboxd.',
-                  icon: MediaType.film.icon,
-                  color: MediaType.film.color,
+                  icon: MediaType.movie.icon,
+                  color: MediaType.movie.color,
                   buttonText: 'Upload Letterboxd CSV',
                   uploadEnabled: true,
                   parser: GoodreadsImportParser(), // same parser can be reused
