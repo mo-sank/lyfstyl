@@ -4,8 +4,12 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lyfstyl/models/media_item.dart';
 import '../../services/books_service.dart';
+import '../../services/firestore_service.dart';
+import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
 import '../../models/book.dart';
 import '../../theme/media_type_theme.dart';
@@ -40,6 +44,46 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
   final BooksService _service = BooksService();
   Timer? _debounce;
 
+  Future<void> _bookmarkBook(Book book) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save bookmarks')),
+      );
+      return;
+    }
+
+    final firestore = context.read<FirestoreService>();
+    try {
+      final coverUrl = await _service.fetchOpenLibraryCoverByTitleAuthor(
+        book.title,
+        book.authors?.isNotEmpty == true ? book.authors!.first : '',
+      );
+
+      await firestore.bookmarkMedia(
+        userId: user.uid,
+        mediaType: MediaType.book,
+        title: book.title,
+        creator: book.authors?.isNotEmpty == true ? book.authors!.first : null,
+        coverUrl: coverUrl,
+        metadata: {
+          'bookId': book.id,
+          'subjects': book.subjects,
+          'publishDate': book.publishDate,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Saved to bookmarks')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to bookmark book')));
+    }
+  }
+
   void _switchToBrowse() {
     setState(() {
       _currentMode = 'browse';
@@ -68,7 +112,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     });
     List<Book> books = await _service.fetchBooks('', '', subject);
     int count = 0;
-    while (books.isEmpty && count < 3){
+    while (books.isEmpty && count < 3) {
       count++;
       books = await _service.fetchBooks('', '', subject);
     }
@@ -124,8 +168,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                   child: ElevatedButton(
                     onPressed: _switchToBrowse,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _currentMode == 'browse' ? Colors.blue : Colors.grey[300],
-                      foregroundColor: _currentMode == 'browse' ? Colors.white : Colors.black,
+                      backgroundColor: _currentMode == 'browse'
+                          ? Colors.blue
+                          : Colors.grey[300],
+                      foregroundColor: _currentMode == 'browse'
+                          ? Colors.white
+                          : Colors.black,
                     ),
                     child: const Text('Browse by Subject'),
                   ),
@@ -135,8 +183,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                   child: ElevatedButton(
                     onPressed: _switchToSearch,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _currentMode == 'search' ? Colors.blue : Colors.grey[300],
-                      foregroundColor: _currentMode == 'search' ? Colors.white : Colors.black,
+                      backgroundColor: _currentMode == 'search'
+                          ? Colors.blue
+                          : Colors.grey[300],
+                      foregroundColor: _currentMode == 'search'
+                          ? Colors.white
+                          : Colors.black,
                     ),
                     child: const Text('Search Specific'),
                   ),
@@ -258,16 +310,20 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                       preFilledData: {
                                         'title': item.title,
                                         'type': 'book',
-                                        'creator': (item.authors != null ? item.authors!.join(', ') : ''),
+                                        'creator': (item.authors != null
+                                            ? item.authors!.join(', ')
+                                            : ''),
                                       },
                                     ),
                                   ),
                                 );
                               },
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

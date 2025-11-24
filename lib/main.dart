@@ -10,9 +10,12 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
+import 'services/user_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/friends/search_friends_screen.dart';
+import 'screens/friends/friends_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/profile/public_profile_screen.dart';
@@ -38,6 +41,7 @@ class LyfstylApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider<AuthService>(create: (context) => AuthService()),
         Provider<FirestoreService>(create: (context) => FirestoreService()),
+        Provider<UserService>(create: (context) => UserService()),
       ],
       child: Builder(
         builder: (context) {
@@ -48,11 +52,11 @@ class LyfstylApp extends StatelessWidget {
             routes: [
               // Public profile route - MUST come first to match before '/'
               GoRoute(
-                path: '/profile/:username',
+                path: '/profile/:userId',
                 builder: (context, state) {
-                  final username = state.pathParameters['username']!;
-                  print('DEBUG ROUTER: Building PublicProfileScreen for username: $username');
-                  return PublicProfileScreen(username: username);
+                  final userId = state.pathParameters['userId']!;
+                  print('DEBUG ROUTER: Building PublicProfileScreen for username: $userId');
+                  return PublicProfileScreen(userId: userId);
                 },
               ),
               
@@ -63,6 +67,14 @@ class LyfstylApp extends StatelessWidget {
                   print('DEBUG ROUTER: Building AuthWrapper');
                   return const AuthWrapper();
                 },
+              ),
+              GoRoute(
+                path: '/friends',
+                builder: (context, state) => const FriendsScreen(),
+              ),
+              GoRoute(
+                path: '/search_users',
+                builder: (context, state) => const SearchUsersScreen(),
               ),
             ],
           );

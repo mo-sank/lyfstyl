@@ -6,11 +6,13 @@ import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
+import '../../services/user_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
 import 'profile_edit_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:html' as html show window;
 
 class ProfileScreen extends StatefulWidget {
@@ -23,12 +25,30 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<UserProfile?> _profileFuture;
   late Future<List<(LogEntry, MediaItem?)>> _logsFuture;
+  bool _isDeleting = false;
+  late Future<List<UserProfile>> _friendsFuture;
+  late Future<List<UserProfile>> _friendRequestsFuture;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = _loadProfile();
     _logsFuture = _loadLogsWithMedia();
+    _friendsFuture = _loadFriends();
+    _friendRequestsFuture = _loadFriendRequests();
+
+  }
+
+  Future<List<UserProfile>> _loadFriends() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    return await svc.getFriends(user.uid);
+  }
+
+  Future<List<UserProfile>> _loadFriendRequests() async {
+    final user = FirebaseAuth.instance.currentUser!;
+    final svc = context.read<FirestoreService>();
+    return await svc.getFriendRequests(user.uid);
   }
 
   Future<UserProfile?> _loadProfile() async {
@@ -111,6 +131,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _confirmDeleteAccount() async {
+    final passwordController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action cannot be undone. All of your profile information, logs, collections, and bookmarks will be permanently deleted.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirm your password',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final password = passwordController.text.trim();
+    passwordController.dispose();
+
+    if (confirmed == true && !_isDeleting) {
+      if (password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your password to proceed.')),
+        );
+        return;
+      }
+      await _deleteAccount(password);
+    }
+  }
+
+  Future<void> _deleteAccount(String password) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isDeleting = true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Deleting account… please wait')),
+    );
+
+    try {
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(cred);
+
+      final svc = context.read<UserService>();
+      await svc.deleteUserData(user.uid);
+      await user.delete();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account deleted. Goodbye!')),
+      );
+      context.go('/');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message =
+          'Failed to delete account. Please try again after re-authenticating.';
+      if (e.code == 'requires-recent-login') {
+        message = 'Please re-enter your password and try again.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect password. Please try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('Account delete error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,7 +254,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _profileFuture = _loadProfile();
               });
             },
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+            tooltip: 'Delete account',
+            onPressed: _isDeleting ? null : _confirmDeleteAccount,
+          ),
         ],
       ),
       body: FutureBuilder<UserProfile?>(
@@ -202,6 +330,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       )
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Friends', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.person_add),
+                        tooltip: 'Search users to add',
+                        onPressed: () {
+                          context.push('/search_users'); // We'll create this route next
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<UserProfile>>(
+                    future: _friendsFuture,
+                    builder: (context, friendsSnapshot) {
+                      if (friendsSnapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final friends = friendsSnapshot.data ?? [];
+                      if (friends.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text('No friends yet', style: TextStyle(color: Colors.grey)),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: friends.length,
+                        itemBuilder: (context, index) {
+                          final friend = friends[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: friend.avatarUrl != null ? NetworkImage(friend.avatarUrl!) : null,
+                              child: friend.avatarUrl == null ? const Icon(Icons.person) : null,
+                            ),
+                            title: Text(friend.displayName ?? friend.username ?? friend.email),
+                            subtitle: Text('@${friend.username ?? friend.email}'),
+                            onTap: () {
+                              context.push('/profile/${friend.userId}');
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Friend Requests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<UserProfile>>(
+                    future: _friendRequestsFuture,
+                    builder: (context, requestsSnapshot) {
+                      if (requestsSnapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final requests = requestsSnapshot.data ?? [];
+                      if (requests.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text('No friend requests', style: TextStyle(color: Colors.grey)),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: requests.length,
+                        itemBuilder: (context, index) {
+                          final requester = requests[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: requester.avatarUrl != null 
+                                ? NetworkImage(requester.avatarUrl!) 
+                                : null,
+                              child: requester.avatarUrl == null 
+                                ? const Icon(Icons.person) 
+                                : null,
+                            ),
+                            title: Text(requester.displayName ?? requester.username ?? requester.email),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () async {
+                                    final svc = context.read<FirestoreService>();
+                                    await svc.acceptFriendRequest(
+                                      FirebaseAuth.instance.currentUser!.uid, 
+                                      requester.userId
+                                    );
+                                    // Refresh friend requests and friends
+                                    setState(() {
+                                      _friendRequestsFuture = _loadFriendRequests();
+                                      _friendsFuture = _loadFriends();
+                                    });
+                                    print('Futures reloaded');
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () async {
+                                    final svc = context.read<FirestoreService>();
+                                    await svc.declineFriendRequest(
+                                      FirebaseAuth.instance.currentUser!.uid, 
+                                      requester.userId
+                                    );
+                                    // Refresh friend requests
+                                    setState(() {
+                                      _friendRequestsFuture = _loadFriendRequests();
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 16),

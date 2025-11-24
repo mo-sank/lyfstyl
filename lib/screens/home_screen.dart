@@ -1,12 +1,9 @@
-// Contributors: 
+// Contributors:
 // Julia: (2 hours) Home page bugs and generic home page
-
 
 // maya poghosyan
 import 'package:flutter/material.dart';
 import 'package:lyfstyl/screens/import/new_import_screen.dart';
-import 'package:lyfstyl/screens/trending/trending_books_screen.dart';
-import 'package:lyfstyl/screens/trending/search_filter_books_screen.dart';
 import 'package:lyfstyl/screens/trending/books_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +16,7 @@ import 'auth/login_screen.dart';
 import 'profile/profile_screen.dart';
 import 'logs/add_log_screen.dart';
 import 'collections/my_collections_screen.dart';
+import 'bookmarks/bookmarks_screen.dart';
 import 'trending/trending_music_screen.dart';
 import 'trending/trending_movies_screen.dart';
 import 'music/music_search_screen.dart';
@@ -50,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     NavigationItem(
       icon: MediaType.book.icon,
       label: 'Books',
-      color: MediaType.book.color
+      color: MediaType.book.color,
     ),
     NavigationItem(
       icon: MediaType.music.icon,
@@ -73,17 +71,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser!;
     final svc = context.read<FirestoreService>();
     final logs = await svc.getUserLogs(user.uid, limit: 50);
-    
+
     final logsWithMedia = <(LogEntry, MediaItem?)>[];
     for (final log in logs) {
       final media = await svc.getMediaItem(log.mediaId);
       logsWithMedia.add((log, media));
     }
-    
+
     return logsWithMedia;
   }
 
-  List<(LogEntry, MediaItem?)> _filterByType(List<(LogEntry, MediaItem?)> logs, List<MediaType> types) {
+  List<(LogEntry, MediaItem?)> _filterByType(
+    List<(LogEntry, MediaItem?)> logs,
+    List<MediaType> types,
+  ) {
     return logs.where((entry) => types.contains(entry.$1.mediaType)).toList();
   }
 
@@ -156,9 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           // Main content
-          Expanded(
-            child: _buildMainContent(),
-          ),
+          Expanded(child: _buildMainContent()),
         ],
       ),
     );
@@ -178,7 +177,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: IconButton(
         onPressed: onTap,
-        icon: Icon(icon, color: color != null ? Colors.white : Colors.grey[600]),
+        icon: Icon(
+          icon,
+          color: color != null ? Colors.white : Colors.grey[600],
+        ),
       ),
     );
   }
@@ -220,13 +222,20 @@ class _HomeScreenState extends State<HomeScreen> {
           case 0:
             return _buildAllMediaContent(allLogs);
           case 1:
-            final movieLogs = _filterByType(allLogs, [MediaType.film, MediaType.show]);
+            final movieLogs = _filterByType(allLogs, [
+              MediaType.film,
+              MediaType.show,
+            ]);
             return _buildMoviesContent(movieLogs);
           case 2:
             final bookLogs = _filterByType(allLogs, [MediaType.book]);
             return _buildBooksContent(bookLogs);
           case 3:
-            final musicLogs = _filterByType(allLogs, [MediaType.album, MediaType.song, MediaType.music]);
+            final musicLogs = _filterByType(allLogs, [
+              MediaType.album,
+              MediaType.song,
+              MediaType.music,
+            ]);
             return _buildMusicContent(musicLogs);
           default:
             return _buildAllMediaContent(allLogs);
@@ -238,7 +247,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAllMediaContent(List<(LogEntry, MediaItem?)> logs) {
     final movieLogs = _filterByType(logs, [MediaType.film, MediaType.show]);
     final bookLogs = _filterByType(logs, [MediaType.book]);
-    final musicLogs = _filterByType(logs, [MediaType.album, MediaType.song, MediaType.music]);
+    final musicLogs = _filterByType(logs, [
+      MediaType.album,
+      MediaType.song,
+      MediaType.music,
+    ]);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -271,10 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Track all your media in one place • ${logs.length} items logged',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -396,7 +406,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -425,10 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -436,7 +448,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, MediaType type, VoidCallback onViewAll) {
+  Widget _buildSectionHeader(
+    String title,
+    MediaType type,
+    VoidCallback onViewAll,
+  ) {
     return Row(
       children: [
         Icon(type.icon, size: 24, color: const Color(0xFF1F2937)),
@@ -511,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Quick actions for movies
           Row(
             children: [
@@ -522,7 +538,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Color(0xFF3B82F6),
                   () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MovieSearchScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MovieSearchScreen(),
+                      ),
                     );
                   },
                 ),
@@ -535,7 +553,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Color(0xFF8B5CF6),
                   () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TrendingMoviesScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const TrendingMoviesScreen(),
+                      ),
                     );
                   },
                 ),
@@ -543,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           if (logs.isEmpty)
             _buildEmptyState(
               'No movies or shows logged yet',
@@ -608,13 +628,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Discover Books button
           GestureDetector(
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BooksScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BooksScreen()));
             },
             child: Container(
               width: double.infinity,
@@ -642,7 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           if (logs.isEmpty)
             _buildEmptyState(
               'No books logged yet',
@@ -701,12 +721,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                  ),                ],
+                  ),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Quick actions
           Row(
             children: [
@@ -717,7 +738,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Color(0xFF3B82F6),
                   () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MusicSearchScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MusicSearchScreen(),
+                      ),
                     );
                   },
                 ),
@@ -730,7 +753,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Color(0xFF8B5CF6),
                   () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TrendingMusicScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const TrendingMusicScreen(),
+                      ),
                     );
                   },
                 ),
@@ -738,7 +763,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           if (logs.isEmpty)
             _buildEmptyState(
               'No music logged yet',
@@ -752,7 +777,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -799,10 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -870,20 +897,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     media!.creator!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
                 if (log.review != null && log.review!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     log.review!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -914,7 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildPlaceholderImage(MediaType type) {
     IconData icon = type.icon;
     Color color = type.color;
-    
+
     return Container(
       width: 60,
       height: 60,
@@ -975,7 +996,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
                       );
                     },
                   ),
@@ -985,7 +1008,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const MyCollectionsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const MyCollectionsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.bookmark,
+                    title: 'Bookmarks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BookmarksScreen(),
+                        ),
                       );
                     },
                   ),
@@ -1003,7 +1040,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const NewImportScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const NewImportScreen(),
+                        ),
                       );
                     },
                   ),
@@ -1059,18 +1098,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final svc = context.read<FirestoreService>();
       final statsService = StatsService();
-      
+
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-      
+
       final logs = await svc.getUserLogs(uid, limit: 1000);
       final stats = statsService.calculateUserStats(logs);
-      
+
       Navigator.of(context).pop();
-      
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -1083,7 +1122,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildStatRow('Total Items', stats.totalItemsLogged.toString()),
                 if (stats.averageRating > 0)
-                  _buildStatRow('Avg Rating', stats.averageRating.toStringAsFixed(1)),
+                  _buildStatRow(
+                    'Avg Rating',
+                    stats.averageRating.toStringAsFixed(1),
+                  ),
               ],
             ),
           ),
@@ -1097,9 +1139,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } catch (e) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 

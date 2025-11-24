@@ -1,9 +1,11 @@
-
-
 // Mohamed Sankari - 6 hours
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/trending_service.dart';
+import '../../services/firestore_service.dart';
+import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
 
 class MusicSearchScreen extends StatefulWidget {
@@ -22,16 +24,33 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
   List<TrendingItem> _genreResults = [];
   bool _isSearching = false;
   bool _isLoadingGenre = false;
-  
+
   // Mode: 'search' or 'browse'
   String _currentMode = 'browse';
   String? _selectedGenre;
-  
+
   // Popular genres for browsing
   static const List<String> _popularGenres = [
-    'pop', 'rock', 'hip hop', 'country', 'jazz', 'blues', 'classical',
-    'electronic', 'folk', 'reggae', 'r&b', 'soul', 'funk', 'disco',
-    'punk', 'metal', 'indie', 'alternative', 'latin', 'world'
+    'pop',
+    'rock',
+    'hip hop',
+    'country',
+    'jazz',
+    'blues',
+    'classical',
+    'electronic',
+    'folk',
+    'reggae',
+    'r&b',
+    'soul',
+    'funk',
+    'disco',
+    'punk',
+    'metal',
+    'indie',
+    'alternative',
+    'latin',
+    'world',
   ];
 
   @override
@@ -42,7 +61,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
 
   Future<void> _searchMusic() async {
     if (_searchCtrl.text.trim().isEmpty) return;
-    
+
     setState(() {
       _isSearching = true;
       _currentMode = 'search';
@@ -118,6 +137,43 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     );
   }
 
+  Future<void> _bookmarkItem(TrendingItem item) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save bookmarks')),
+      );
+      return;
+    }
+
+    final firestore = context.read<FirestoreService>();
+
+    try {
+      await firestore.bookmarkMedia(
+        userId: user.uid,
+        mediaType: MediaType.music,
+        title: item.title,
+        creator: item.artist,
+        coverUrl: item.coverUrl,
+        metadata: {
+          'source': _currentMode,
+          'musicData': item.musicData,
+          if (_currentMode == 'browse' && _selectedGenre != null)
+            'genre': _selectedGenre,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Saved to bookmarks')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to bookmark track')));
+    }
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -142,16 +198,24 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: _buildModeButton('browse', 'Browse by Genre', Icons.category),
+                  child: _buildModeButton(
+                    'browse',
+                    'Browse by Genre',
+                    Icons.category,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildModeButton('search', 'Search Specific', Icons.search),
+                  child: _buildModeButton(
+                    'search',
+                    'Search Specific',
+                    Icons.search,
+                  ),
                 ),
               ],
             ),
           ),
-          
+
           // Content based on mode
           if (_currentMode == 'browse') _buildBrowseContent(),
           if (_currentMode == 'search') _buildSearchContent(),
@@ -174,18 +238,12 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         backgroundColor: isSelected ? Colors.blue : Colors.grey[200],
         foregroundColor: isSelected ? Colors.white : Colors.grey[700],
         elevation: isSelected ? 2 : 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
+        children: [Icon(icon, size: 20), const SizedBox(width: 8), Text(label)],
       ),
     );
   }
@@ -218,11 +276,9 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
               ],
             ),
           ),
-          
+
           // Results
-          Expanded(
-            child: _buildBrowseResults(),
-          ),
+          Expanded(child: _buildBrowseResults()),
         ],
       ),
     );
@@ -284,7 +340,9 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Text('Search'),
@@ -294,18 +352,16 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Search for specific songs, artists, or albums',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-          
+
           // Search Results
-          Expanded(
-            child: _buildSearchResults(),
-          ),
+          Expanded(child: _buildSearchResults()),
         ],
       ),
     );
@@ -330,24 +386,20 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.category,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.category, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'Choose a genre to discover music',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
               'Tap any genre above to see trending and popular music',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
             ),
           ],
         ),
@@ -357,10 +409,11 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     return FutureBuilder<List<TrendingItem>>(
       future: _genreFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting || _isLoadingGenre) {
+        if (snapshot.connectionState == ConnectionState.waiting ||
+            _isLoadingGenre) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
           return Center(
             child: Column(
@@ -378,9 +431,9 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             ),
           );
         }
-        
+
         final results = snapshot.data ?? [];
-        
+
         if (results.isEmpty) {
           return Center(
             child: Column(
@@ -395,15 +448,15 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Try selecting a different genre',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 ),
               ],
             ),
           );
         }
-        
+
         return Column(
           children: [
             // Genre header
@@ -420,24 +473,25 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                         const SizedBox(width: 8),
                         Text(
                           '${_selectedGenre!.toUpperCase()} Music',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.blue[800],
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${results.length} songs - trending and popular',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.blue[600],
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.blue[600]),
                     ),
                   ],
                 ),
               ),
-            
+
             // Results list
             Expanded(
               child: ListView.builder(
@@ -461,24 +515,20 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.search, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'Search for specific music',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
               'Enter a song, artist, or album name to get started',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
             ),
           ],
         ),
@@ -491,7 +541,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
           return Center(
             child: Column(
@@ -509,9 +559,9 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             ),
           );
         }
-        
+
         final results = snapshot.data ?? [];
-        
+
         if (results.isEmpty) {
           return Center(
             child: Column(
@@ -526,15 +576,15 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Try searching with different keywords',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 ),
               ],
             ),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: results.length,
@@ -546,7 +596,6 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       },
     );
   }
-
 
   Widget _buildSearchResultCard(TrendingItem item) {
     return Card(
@@ -575,15 +624,23 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                           item.coverUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.music_note, size: 40, color: Colors.grey);
+                            return const Icon(
+                              Icons.music_note,
+                              size: 40,
+                              color: Colors.grey,
+                            );
                           },
                         ),
                       )
-                    : const Icon(Icons.music_note, size: 40, color: Colors.grey),
+                    : const Icon(
+                        Icons.music_note,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Track Info
               Expanded(
                 child: Column(
@@ -599,33 +656,33 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Artist
                     Text(
                       item.artist,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Rich Data Display
                     _buildRichDataDisplay(item),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Action Button
                     Row(
                       children: [
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blue[100],
                             borderRadius: BorderRadius.circular(16),
@@ -633,7 +690,11 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.add, size: 16, color: Colors.blue),
+                              const Icon(
+                                Icons.add,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Log This',
@@ -651,6 +712,15 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(
+                  Icons.bookmark_border,
+                  color: Colors.orangeAccent,
+                ),
+                onPressed: () => _bookmarkItem(item),
+                tooltip: 'Save bookmark',
+              ),
             ],
           ),
         ),
@@ -661,7 +731,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
   Widget _buildRichDataDisplay(TrendingItem item) {
     final data = item.musicData;
     final List<Widget> infoWidgets = [];
-    
+
     // Album
     if (data['album'] != null && data['album'].toString().isNotEmpty) {
       infoWidgets.add(
@@ -678,11 +748,11 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         ),
       );
     }
-    
+
     // Duration
     if (data['durationSeconds'] != null) {
       final duration = Duration(seconds: data['durationSeconds'] as int);
-      final durationText = duration.inMinutes > 0 
+      final durationText = duration.inMinutes > 0
           ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
           : '${duration.inSeconds}s';
       infoWidgets.add(
@@ -699,7 +769,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         ),
       );
     }
-    
+
     // Year
     if (data['year'] != null) {
       infoWidgets.add(
@@ -716,7 +786,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         ),
       );
     }
-    
+
     // Genres
     if (data['genres'] != null && (data['genres'] as List).isNotEmpty) {
       final genres = (data['genres'] as List).take(2).join(', ');
@@ -734,15 +804,11 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         ),
       );
     }
-    
+
     if (infoWidgets.isEmpty) {
       return const SizedBox.shrink();
     }
-    
-    return Wrap(
-      spacing: 12,
-      runSpacing: 2,
-      children: infoWidgets,
-    );
+
+    return Wrap(spacing: 12, runSpacing: 2, children: infoWidgets);
   }
 }
