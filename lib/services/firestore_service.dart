@@ -2,6 +2,11 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' show User;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user_profile.dart';
 import '../models/media_item.dart';
 import '../models/log_entry.dart';
@@ -58,6 +63,85 @@ class FirestoreService {
     await usersCol
         .doc(profile.userId)
         .set(profile.toMap(), SetOptions(merge: true));
+  }
+
+  // Upload profile picture to Cloudinary
+  // You'll need to set these in your environment or config:
+  // - CLOUDINARY_CLOUD_NAME
+  // - CLOUDINARY_UPLOAD_PRESET (unsigned preset recommended)
+  Future<String> uploadProfilePictureToCloudinary(
+    String userId,
+    Uint8List imageBytes, {
+    String? cloudName,
+    String? uploadPreset,
+  }) async {
+    try {
+      // Get Cloudinary credentials
+      // For production, store these in environment variables or a config file
+      final cloudNameValue = cloudName ?? 
+          const String.fromEnvironment('dazvumme2', defaultValue: '');
+      final uploadPresetValue = uploadPreset ?? 
+          const String.fromEnvironment('lyfstyl_profile_pictures', defaultValue: '');
+
+      if (cloudNameValue.isEmpty || uploadPresetValue.isEmpty) {
+        throw Exception('Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET');
+      }
+
+      // Convert image bytes to base64
+      final base64Image = base64Encode(imageBytes);
+
+      // Create multipart request
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudNameValue/image/upload');
+      
+      final request = http.MultipartRequest('POST', uri);
+      request.fields['upload_preset'] = uploadPresetValue;
+      request.fields['public_id'] = 'profile_pictures/$userId';
+      request.fields['folder'] = 'lyfstyl/profiles';
+      
+      // Add image file
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: '$userId.jpg',
+        ),
+      );
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 200) {
+        throw Exception('Cloudinary upload failed: ${response.statusCode} - ${response.body}');
+      }
+
+      final responseData = json.decode(response.body);
+      final imageUrl = responseData['secure_url'] as String? ?? responseData['url'] as String;
+      
+      if (imageUrl == null) {
+        throw Exception('No URL returned from Cloudinary');
+      }
+
+      return imageUrl;
+    } catch (e) {
+      throw Exception('Failed to upload profile picture to Cloudinary: $e');
+    }
+  }
+
+  // Helper method to upload from File (for mobile)
+  Future<String> uploadProfilePictureFromFile(
+    String userId,
+    File imageFile, {
+    String? cloudName,
+    String? uploadPreset,
+  }) async {
+    final bytes = await imageFile.readAsBytes();
+    return uploadProfilePictureToCloudinary(
+      userId,
+      bytes,
+      cloudName: cloudName,
+      uploadPreset: uploadPreset,
+    );
   }
 
   // ---------------------------
