@@ -2,7 +2,6 @@
 // Julia: (1 hour) Media type now includes albums, songs, and shows
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lyfstyl/screens/flutter/packages/flutter/lib/rendering.dart';
 import 'package:flutter/material.dart';
 import "package:lyfstyl/screens/trending/trending_books_screen.dart";
 import "package:lyfstyl/screens/trending/trending_movies_screen.dart";

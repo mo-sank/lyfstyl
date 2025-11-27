@@ -5,7 +5,7 @@ import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../services/stats_service.dart';
-import '../../models/enhanced_log_entry.dart';
+import '../../models/log_entry.dart';
 
 class StatsDashboardScreen extends StatefulWidget {
   const StatsDashboardScreen({super.key});
@@ -15,7 +15,7 @@ class StatsDashboardScreen extends StatefulWidget {
 }
 
 class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
-  late Future<UserStats> _future;
+  late Future<Map<String, dynamic>> _future;
   final StatsService _statsService = StatsService();
 
   @override
@@ -24,11 +24,15 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     _future = _loadStats();
   }
 
-  Future<UserStats> _loadStats() async {
+  Future<Map<String, dynamic>> _loadStats() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final svc = context.read<FirestoreService>();
     final logs = await svc.getUserLogs(uid, limit: 1000);
-    return _statsService.calculateUserStats(logs);
+    final stats = _statsService.calculateUserStats(logs);
+    return {
+      'stats': stats,
+      'logs': logs,
+    };
   }
 
   @override
@@ -40,7 +44,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
         foregroundColor: Colors.black,
         elevation: 0.5,
       ),
-      body: FutureBuilder<UserStats>(
+      body: FutureBuilder<Map<String, dynamic>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -69,7 +73,9 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             );
           }
           
-          final stats = snapshot.data!;
+          final data = snapshot.data!;
+          final stats = data['stats'] as UserStats;
+          final logs = data['logs'] as List<LogEntry>;
           
           if (stats.totalItemsLogged == 0) {
             return Center(
@@ -124,7 +130,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                 ],
                 
                 // Recent Activity
-                _buildRecentActivity(stats),
+                _buildRecentActivity(logs),
               ],
             ),
           );
@@ -440,7 +446,12 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     );
   }
 
-  Widget _buildRecentActivity(UserStats stats) {
+  Widget _buildRecentActivity(List<LogEntry> logs) {
+    final recentLogs = logs.take(5).toList();
+    if (recentLogs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,12 +460,12 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        ...stats.recentLogs.take(5).map((log) {
+        ...recentLogs.map((log) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                Icon(entry.key.icon, size: 20),
+                Icon(log.mediaType.icon, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
