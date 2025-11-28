@@ -639,7 +639,12 @@ Widget _buildMediaContent(List<(LogEntry, MediaItem?)> logs, MediaType type) {
   }
 
   Widget _buildMediaCard(LogEntry log, MediaItem? media) {
-    return Container(
+    return GestureDetector(
+  onTap: () {
+    log.showMediaDialog(context,log, media!);
+    
+  }, child: 
+  Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -719,7 +724,7 @@ Widget _buildMediaContent(List<(LogEntry, MediaItem?)> logs, MediaType type) {
             ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildPlaceholderImage(MediaType type) {

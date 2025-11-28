@@ -9,6 +9,7 @@ import "package:lyfstyl/screens/music/trending_music_screen.dart";
 import 'package:lyfstyl/screens/music/music_search_screen.dart';
 import 'package:lyfstyl/screens/books/book_search_screen.dart';
 import 'package:lyfstyl/screens/movies/movie_search_screen.dart';
+import '../models/media_item.dart';
 
 
 
@@ -101,6 +102,8 @@ class MediaItem {
     }
   }
 
+  
+
   static MediaType _parseMediaType(String? value) {
     switch (value) {
       case 'movie':
@@ -128,6 +131,8 @@ class MediaItem {
         return MediaSource.other;
     }
   }
+
+  
 }
 // SUBCLASSES STARTED
 class FilmItem extends MediaItem {
@@ -221,3 +226,4 @@ factory BookItem.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     );
   }
 }
+

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'media_item.dart';
+import 'package:flutter/material.dart';
+import '../screens/logs/edit_log_screen.dart'; // <-- Add this line
 
 class LogEntry {
   final String logId; // doc id
@@ -73,6 +75,130 @@ class LogEntry {
       default:
         return MediaType.movie;
     }
+  }
+
+  Future<void> showMediaDialog(BuildContext context, LogEntry log, MediaItem? item) {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Cover image
+                  if (item != null && item.coverUrl != null && item.coverUrl!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        item.coverUrl!,
+                        height: 120,
+                        width: 120,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(item.type.icon, size: 80, color: item.type.color),
+                      ),
+                    )
+                  else
+                    Icon(log.mediaType.icon, size: 80, color: log.mediaType.color),
+                  const SizedBox(height: 16),
+                  // Title
+                  Text(
+                    item?.title ?? '',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  // Creator (author, director, artist)
+                  if (item?.creator != null && item!.creator!.isNotEmpty)
+                    Text(
+                      item.creator!,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  const SizedBox(height: 8),
+                  // Rating as stars
+                  if (log.rating != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final filled = log.rating! >= index + 1;
+                        final half = !filled && log.rating! > index && log.rating! < index + 1;
+                        return Icon(
+                          filled
+                              ? Icons.star
+                              : half
+                                  ? Icons.star_half
+                                  : Icons.star_border,
+                          color: Colors.amber,
+                          size: 28,
+                        );
+                      }),
+                    ),
+                  const SizedBox(height: 8),
+                  // Review
+                  if (log.review != null && log.review!.isNotEmpty)
+                    Text(
+                      log.review!,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  const SizedBox(height: 8),
+                  // Tags
+                  if (log.tags.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      children: log.tags.map((tag) => Chip(
+                        label: Text(tag),
+                        backgroundColor: Colors.blue[50],
+                      )).toList(),
+                    ),
+                  const SizedBox(height: 8),
+                  // Consumed at date
+                  Text(
+                    'Consumed at: ${_formatDate(log.consumedAt)}',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  // Edit and Close buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => EditLogScreen(
+                                media: item!,
+                                log: log,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }
 
