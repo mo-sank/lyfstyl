@@ -7,7 +7,6 @@ import '../../services/music_trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
-import '../../theme/media_type_theme.dart';
 class TrendingMusicScreen extends StatefulWidget {
   const TrendingMusicScreen({super.key});
 

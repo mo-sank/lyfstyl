@@ -103,21 +103,6 @@ void _logSearchResult(BuildContext context, MovieItem item) {
     }
   }
 
-  void _applyFilters() {
-    setState(() {
-      _genreResults = _service.filterMovies(
-        _searchResults,
-        genre: _selectedGenre
-      );
-    });
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _selectedGenre = null;
-      _genreResults = _searchResults;
-    });
-  }
 
   Future<void> _bookmarkMovie(MovieItem movie) async {
     final user = FirebaseAuth.instance.currentUser;

@@ -77,9 +77,6 @@ class _MyCollectionsScreenState extends State<MyCollectionsScreen> {
             bookCover = media.coverUrl;
           }
           break;
-        default:
-          filmCount++;
-          break;
       }
     }
     

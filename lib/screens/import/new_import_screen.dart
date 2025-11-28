@@ -6,17 +6,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:lyfstyl/utils/import_parser.dart';
 import 'package:lyfstyl/utils/import_handlers.dart';
 import 'dart:io';
-import '../../models/log_entry.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
-import '../../models/log_entry.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/custom_button.dart';
-import '../../theme/media_type_theme.dart';
-
 
 class NewImportScreen extends StatelessWidget {
   const NewImportScreen({super.key});

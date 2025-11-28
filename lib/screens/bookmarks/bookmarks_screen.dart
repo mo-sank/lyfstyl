@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/bookmark_item.dart';
 import '../../models/media_item.dart';
 import '../../services/firestore_service.dart';
-import '../../theme/media_type_theme.dart';
 import '../logs/add_log_screen.dart';
 
 class BookmarksScreen extends StatefulWidget {

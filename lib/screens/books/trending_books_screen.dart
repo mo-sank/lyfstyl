@@ -9,9 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/books_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/nyt_book.dart';
-import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
-import '../../theme/media_type_theme.dart';
 
 class TrendingBooksScreen extends StatefulWidget {
   const TrendingBooksScreen({super.key});
@@ -112,22 +110,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
     return dates;
   }
 
-  void _onDateChanged(String? date) async {
-    if (date == null) return;
-    final overview = await _service.getOverview(publishedDate: date);
-    setState(() {
-      _selectedDate = overview.publishedDate;
-      _allLists = overview.lists;
-      _selectedListName = overview.lists.isNotEmpty
-          ? overview.lists.first.listName
-          : null;
-      _displayBooks = overview.lists.isNotEmpty
-          ? overview.lists.first.books
-          : [];
-      _filtered = _displayBooks;
-    });
-    _applyFilter();
-  }
+
 
   void _onListChanged(String? listName) {
     if (listName == null) return;
