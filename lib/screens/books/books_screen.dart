@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'trending_books_screen.dart';
-import 'search_filter_books_screen.dart';
+import 'book_search_screen.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});

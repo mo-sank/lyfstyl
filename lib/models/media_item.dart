@@ -7,7 +7,7 @@ import "package:lyfstyl/screens/books/trending_books_screen.dart";
 import "package:lyfstyl/screens/movies/trending_movies_screen.dart";
 import "package:lyfstyl/screens/music/trending_music_screen.dart";
 import 'package:lyfstyl/screens/music/music_search_screen.dart';
-import 'package:lyfstyl/screens/books/search_filter_books_screen.dart';
+import 'package:lyfstyl/screens/books/book_search_screen.dart';
 import 'package:lyfstyl/screens/movies/movie_search_screen.dart';
 
 
