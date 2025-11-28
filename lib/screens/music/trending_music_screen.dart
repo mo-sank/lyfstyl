@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/trending_service.dart';
+import '../../services/music_trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
@@ -17,20 +17,20 @@ class TrendingMusicScreen extends StatefulWidget {
 
 class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
   final TextEditingController _keywordsCtrl = TextEditingController();
-  late TrendingService _service;
-  Future<List<TrendingItem>>? _future;
-  List<TrendingItem> _items = [];
-  List<TrendingItem> _filtered = [];
+  late MusicTrendingService _service;
+  Future<List<MusicTrendingItem>>? _future;
+  List<MusicTrendingItem> _items = [];
+  List<MusicTrendingItem> _filtered = [];
 
   @override
   void initState() {
     super.initState();
-    _service = TrendingService();
+    _service = MusicTrendingService();
     _future = _load();
     _keywordsCtrl.addListener(_applyFilter);
   }
 
-  Future<List<TrendingItem>> _load() async {
+  Future<List<MusicTrendingItem>> _load() async {
     final items = await _service.getLatestMusic(limit: 20);
     _items = items;
     _filtered = items;
@@ -48,7 +48,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
     });
   }
 
-  void _logTrendingItem(BuildContext context, TrendingItem item) {
+  void _logTrendingItem(BuildContext context, MusicTrendingItem item) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddLogScreen(
@@ -65,7 +65,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
 
   Future<void> _bookmarkTrendingItem(
     BuildContext context,
-    TrendingItem item,
+    MusicTrendingItem item,
   ) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -98,7 +98,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
     }
   }
 
-  Widget _buildRichDataDisplay(TrendingItem item) {
+  Widget _buildRichDataDisplay(MusicTrendingItem item) {
     final data = item.musicData;
     final List<Widget> infoWidgets = [];
 
@@ -205,7 +205,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: FutureBuilder<List<TrendingItem>>(
+              child: FutureBuilder<List<MusicTrendingItem>>(
                 future: _future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {

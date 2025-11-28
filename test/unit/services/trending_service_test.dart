@@ -1,22 +1,22 @@
 // maya poghosyan
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lyfstyl/services/trending_service.dart';
+import 'package:lyfstyl/services/music_trending_service.dart';
 
 void main() {
   group('TrendingService', () {
-    late TrendingService service;
+    late MusicTrendingService service;
 
     setUp(() {
-      service = TrendingService();
+      service = MusicTrendingService();
     });
 
     group('filterByKeywords', () {
-      late List<TrendingItem> testItems;
+      late List<MusicTrendingItem> testItems;
 
       setUp(() {
         testItems = [
-          TrendingItem(
+          MusicTrendingItem(
             id: '1',
             type: 'music',
             title: 'Bohemian Rhapsody',
@@ -24,7 +24,7 @@ void main() {
             sources: ['lastfm'],
             score: 100.0,
           ),
-          TrendingItem(
+          MusicTrendingItem(
             id: '2',
             type: 'music',
             title: 'Billie Jean',
@@ -32,7 +32,7 @@ void main() {
             sources: ['lastfm'],
             score: 95.0,
           ),
-          TrendingItem(
+          MusicTrendingItem(
             id: '3',
             type: 'music',
             title: 'Stairway to Heaven',
@@ -91,7 +91,7 @@ void main() {
     });
 
     test('should handle TrendingItem creation with all fields', () {
-      final item = TrendingItem(
+      final item = MusicTrendingItem(
         id: 'test-id',
         type: 'music',
         title: 'Test Song',
@@ -116,7 +116,7 @@ void main() {
     });
 
     test('should handle TrendingItem creation with minimal fields', () {
-      final item = TrendingItem(
+      final item = MusicTrendingItem(
         id: 'minimal-id',
         type: 'music',
         title: 'Minimal Song',

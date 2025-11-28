@@ -1,10 +1,9 @@
 // Mohamed Sankari - 6 hours
 
 import 'package:flutter/material.dart';
-import 'package:lyfstyl/theme/media_type_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/trending_service.dart';
+import '../../services/music_trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
@@ -18,11 +17,11 @@ class MusicSearchScreen extends StatefulWidget {
 
 class _MusicSearchScreenState extends State<MusicSearchScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  late TrendingService _service;
-  Future<List<TrendingItem>>? _searchFuture;
-  Future<List<TrendingItem>>? _genreFuture;
-  List<TrendingItem> _searchResults = [];
-  List<TrendingItem> _genreResults = [];
+  late MusicTrendingService _service;
+  Future<List<MusicTrendingItem>>? _searchFuture;
+  Future<List<MusicTrendingItem>>? _genreFuture;
+  List<MusicTrendingItem> _searchResults = [];
+  List<MusicTrendingItem> _genreResults = [];
   bool _isSearching = false;
   bool _isLoadingGenre = false;
 
@@ -57,7 +56,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
   @override
   void initState() {
     super.initState();
-    _service = TrendingService();
+    _service = MusicTrendingService();
   }
 
   Future<void> _searchMusic() async {
@@ -70,7 +69,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     });
   }
 
-  Future<List<TrendingItem>> _performSearch() async {
+  Future<List<MusicTrendingItem>> _performSearch() async {
     try {
       final results = await _service.searchMusic(_searchCtrl.text.trim());
       _searchResults = results;
@@ -92,7 +91,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     });
   }
 
-  Future<List<TrendingItem>> _performGenreBrowse(String genre) async {
+  Future<List<MusicTrendingItem>> _performGenreBrowse(String genre) async {
     try {
       // Use the new dedicated genre method
       final results = await _service.getMusicByGenre(genre, limit: 30);
@@ -123,7 +122,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     });
   }
 
-  void _logSearchResult(BuildContext context, TrendingItem item) {
+  void _logSearchResult(BuildContext context, MusicTrendingItem item) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddLogScreen(
@@ -138,7 +137,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     );
   }
 
-  Future<void> _bookmarkItem(TrendingItem item) async {
+  Future<void> _bookmarkItem(MusicTrendingItem item) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,7 +194,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
           // Mode Toggle
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.grey[50],
+            color: Colors.white,
             child: Row(
               children: [
                 Expanded(
@@ -236,7 +235,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.blue : Colors.grey[200],
+        backgroundColor: isSelected ? Color(0xFF9B5DE5): Colors.grey[200],
         foregroundColor: isSelected ? Colors.white : Colors.grey[700],
         elevation: isSelected ? 2 : 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -329,7 +328,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                     ElevatedButton(
                       onPressed: _isSearching ? null : _searchMusic,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Color(0xFF9B5DE5),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -372,9 +371,9 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     return ActionChip(
       label: Text(genre.toUpperCase()),
       onPressed: () => _browseByGenre(genre),
-      backgroundColor: Colors.blue[50],
+      backgroundColor: Colors.grey[100],
       labelStyle: TextStyle(
-        color: Colors.blue[800],
+        color: MediaType.music.color,
         fontWeight: FontWeight.w500,
       ),
       avatar: Icon(MediaType.music.icon, size: 16, color: MediaType.music.color),
@@ -407,7 +406,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       );
     }
 
-    return FutureBuilder<List<TrendingItem>>(
+    return FutureBuilder<List<MusicTrendingItem>>(
       future: _genreFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting ||
@@ -465,18 +464,18 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                color: Colors.blue[50],
+                color: Color(0xFF9B5DE5),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Icon(MediaType.music.icon, color: MediaType.music.color),
+                        Icon(MediaType.music.icon, color: Colors.black),
                         const SizedBox(width: 8),
                         Text(
                           '${_selectedGenre!.toUpperCase()} Music',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                                color: Colors.blue[800],
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
@@ -487,7 +486,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                       '${results.length} songs - trending and popular',
                       style: Theme.of(
                         context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.blue[600]),
+                      ).textTheme.bodySmall?.copyWith(color: Color(0xFF9B5DE5)),
                     ),
                   ],
                 ),
@@ -536,7 +535,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       );
     }
 
-    return FutureBuilder<List<TrendingItem>>(
+    return FutureBuilder<List<MusicTrendingItem>>(
       future: _searchFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -598,7 +597,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     );
   }
 
-  Widget _buildSearchResultCard(TrendingItem item) {
+  Widget _buildSearchResultCard(MusicTrendingItem item) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -685,7 +684,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue[100],
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -694,14 +693,14 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                               const Icon(
                                 Icons.add,
                                 size: 16,
-                                color: Colors.blue,
+                                color: Color(0xFF9B5DE5),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Log This',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.blue[800],
+                                  color: Color(0xFF9B5DE5),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -729,7 +728,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     );
   }
 
-  Widget _buildRichDataDisplay(TrendingItem item) {
+  Widget _buildRichDataDisplay(MusicTrendingItem item) {
     final data = item.musicData;
     final List<Widget> infoWidgets = [];
 

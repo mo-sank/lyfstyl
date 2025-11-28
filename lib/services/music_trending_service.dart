@@ -5,7 +5,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class TrendingItem {
+class MusicTrendingItem {
   final String id;
   final String type; // music
   final String title;
@@ -18,7 +18,7 @@ class TrendingItem {
   // Rich music data for logging
   final Map<String, dynamic> musicData;
 
-  TrendingItem({
+  MusicTrendingItem({
     required this.id,
     required this.type,
     required this.title,
@@ -31,13 +31,13 @@ class TrendingItem {
   });
 }
 
-class TrendingService {
+class MusicTrendingService {
   // Last.fm API key - direct API approach (FREE!)
   static const String _lastfmApiKey = 'a56da6ca8f0fcd0d15dc18e43be048c9';
   static const String _lastfmBaseUrl = 'https://ws.audioscrobbler.com/2.0/';
 
   // Get trending music directly from Last.fm (FREE!)
-  Future<List<TrendingItem>> getLatestMusic({int limit = 20}) async {
+  Future<List<MusicTrendingItem>> getLatestMusic({int limit = 20}) async {
     try {
       // Use chart.getTopTracks with extended info for better cover art
       final response = await http.get(
@@ -49,10 +49,10 @@ class TrendingService {
         final tracks = data['tracks']['track'] as List;
         
         // Fetch additional track info for rich data
-        final List<TrendingItem> items = [];
+        final List<MusicTrendingItem> items = [];
         for (final track in tracks) {
           final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
-          items.add(TrendingItem(
+          items.add(MusicTrendingItem(
             id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
             type: 'music',
             title: track['name'] ?? '',
@@ -176,7 +176,7 @@ class TrendingService {
   }
 
   // Search for music using Last.fm API
-  Future<List<TrendingItem>> searchMusic(String query, {int limit = 20}) async {
+  Future<List<MusicTrendingItem>> searchMusic(String query, {int limit = 20}) async {
     try {
       final response = await http.get(
         Uri.parse('$_lastfmBaseUrl?method=track.search&api_key=$_lastfmApiKey&track=${Uri.encodeComponent(query)}&format=json&limit=$limit'),
@@ -191,10 +191,10 @@ class TrendingService {
         final tracks = searchResults is List ? searchResults : [searchResults];
         
         // Fetch additional track info for rich data
-        final List<TrendingItem> items = [];
+        final List<MusicTrendingItem> items = [];
         for (final track in tracks) {
           final trackInfo = await _getTrackInfo(track['name'], track['artist']);
-          items.add(TrendingItem(
+          items.add(MusicTrendingItem(
             id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
             type: 'music',
             title: track['name'] ?? '',
@@ -217,9 +217,9 @@ class TrendingService {
   }
 
   // Get music by genre - both trending and popular
-  Future<List<TrendingItem>> getMusicByGenre(String genre, {int limit = 30}) async {
+  Future<List<MusicTrendingItem>> getMusicByGenre(String genre, {int limit = 30}) async {
     try {
-      final List<TrendingItem> allResults = [];
+      final List<MusicTrendingItem> allResults = [];
       
       // Get trending tracks in this genre
       final trendingResults = await _getTrendingByGenre(genre, limit: limit ~/ 2);
@@ -230,7 +230,7 @@ class TrendingService {
       allResults.addAll(popularResults);
       
       // Remove duplicates based on track name and artist
-      final uniqueResults = <String, TrendingItem>{};
+      final uniqueResults = <String, MusicTrendingItem>{};
       for (final item in allResults) {
         final key = '${item.title.toLowerCase()}_${item.artist.toLowerCase()}';
         if (!uniqueResults.containsKey(key)) {
@@ -246,7 +246,7 @@ class TrendingService {
   }
 
   // Get trending tracks in a specific genre
-  Future<List<TrendingItem>> _getTrendingByGenre(String genre, {int limit = 15}) async {
+  Future<List<MusicTrendingItem>> _getTrendingByGenre(String genre, {int limit = 15}) async {
     try {
       // Use chart.getTopTracks and filter by genre
       final response = await http.get(
@@ -257,14 +257,14 @@ class TrendingService {
         final data = json.decode(response.body);
         final tracks = data['tracks']['track'] as List;
         
-        final List<TrendingItem> genreItems = [];
+        final List<MusicTrendingItem> genreItems = [];
         for (final track in tracks) {
           final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
           final genres = trackInfo['genres'] as List? ?? [];
           
           // Check if this track matches the genre
           if (genres.any((g) => g.toString().toLowerCase().contains(genre.toLowerCase()))) {
-            genreItems.add(TrendingItem(
+            genreItems.add(MusicTrendingItem(
               id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
               type: 'music',
               title: track['name'] ?? '',
@@ -290,7 +290,7 @@ class TrendingService {
   }
 
   // Get popular tracks in a specific genre using tag.getTopTracks
-  Future<List<TrendingItem>> _getPopularByGenre(String genre, {int limit = 15}) async {
+  Future<List<MusicTrendingItem>> _getPopularByGenre(String genre, {int limit = 15}) async {
     try {
       final response = await http.get(
         Uri.parse('$_lastfmBaseUrl?method=tag.gettoptracks&api_key=$_lastfmApiKey&tag=${Uri.encodeComponent(genre)}&format=json&limit=$limit'),
@@ -300,10 +300,10 @@ class TrendingService {
         final data = json.decode(response.body);
         final tracks = data['tracks']['track'] as List;
         
-        final List<TrendingItem> items = [];
+        final List<MusicTrendingItem> items = [];
         for (final track in tracks) {
           final trackInfo = await _getTrackInfo(track['name'], track['artist']['name']);
-          items.add(TrendingItem(
+          items.add(MusicTrendingItem(
             id: track['mbid'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
             type: 'music',
             title: track['name'] ?? '',
@@ -326,7 +326,7 @@ class TrendingService {
   }
 
   // Filter trending items by keywords
-  List<TrendingItem> filterByKeywords(List<TrendingItem> items, List<String> keywords) {
+  List<MusicTrendingItem> filterByKeywords(List<MusicTrendingItem> items, List<String> keywords) {
     if (keywords.isEmpty) return items;
     final ks = keywords.map((k) => k.toLowerCase().trim()).where((k) => k.isNotEmpty).toList();
     return items.where((i) {
