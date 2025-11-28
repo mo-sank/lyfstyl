@@ -14,6 +14,45 @@ import '../../models/media_item.dart';
 class NewImportScreen extends StatelessWidget {
   const NewImportScreen({super.key});
 
+  void _showInfoDialog(BuildContext context, String service) {
+    String infoText;
+    if (service == 'Goodreads') {
+      infoText = '''
+To export your reading history from Goodreads:
+1. Go to Goodreads.com and log in (Desktop only).
+2. Click on your profile icon and navigate to "My Books".
+3. On the left sidebar, under "Tools", click "Import and export".
+4. Under "Export", click "Export Library".
+5. Download the CSV file and upload it here.
+''';
+    } else if (service == 'Letterboxd') {
+      infoText = '''
+To get your watching history from Letterboxd:
+1. Go to letterboxd.com and log in (Desktop only).
+2. Under your profile, click "Settings".
+3. In the top bar, navigate to "Data" and click "Export your data".
+4. Download and unzip the file.
+5. You will recived multiple CSVs. Upload the one titled "diary.csv" here.
+''';
+    } else {
+      infoText = 'Instructions not available.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('How to Export from $service'),
+        content: Text(infoText),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,35 +70,87 @@ class NewImportScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                _ImportCard(
-                  title: 'Goodreads',
-                  description: 'Upload your reading history from Goodreads.',
-                  icon: MediaType.book.icon,
-                  color: MediaType.book.color,
-                  buttonText: 'Upload Goodreads CSV',
-                  uploadEnabled: true,
-                  parser: GoodreadsImportParser(),
-                  handler: GoodreadsImportHandler(),
+                // Goodreads
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          _ImportCard(
+                            title: 'Goodreads',
+                            description: 'Upload your reading history from Goodreads.',
+                            icon: MediaType.book.icon,
+                            color: MediaType.book.color,
+                            buttonText: 'Upload Goodreads CSV',
+                            uploadEnabled: true,
+                            parser: GoodreadsImportParser(),
+                            handler: GoodreadsImportHandler(),
+                          ),
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: IconButton(
+                              icon: const Icon(Icons.info_outline),
+                              tooltip: 'How to export from Goodreads',
+                              onPressed: () => _showInfoDialog(context, 'Goodreads'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
-                _ImportCard(
-                  title: 'Letterboxd',
-                  description: 'Import your watched films from Letterboxd.',
-                  icon: MediaType.movie.icon,
-                  color: MediaType.movie.color,
-                  buttonText: 'Upload Letterboxd CSV',
-                  uploadEnabled: true,
-                  parser: GoodreadsImportParser(), // same parser can be reused
-                  handler: LetterboxdImportHandler(),
+                // Letterboxd
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Stack (children: [_ImportCard(
+                        title: 'Letterboxd',
+                        description: 'Import your watched films from Letterboxd.',
+                        icon: MediaType.movie.icon,
+                        color: MediaType.movie.color,
+                        buttonText: 'Upload Letterboxd CSV',
+                        uploadEnabled: true,
+                        
+                        parser: GoodreadsImportParser(), // same parser can be reused
+                        handler: LetterboxdImportHandler(),
+                      ),
+                      Positioned(
+                            top: 12,
+                            right: 12,
+                            child: IconButton(
+                              icon: const Icon(Icons.info_outline),
+                              tooltip: 'How to export from Letterboxd',
+                              onPressed: () => _showInfoDialog(context, 'Letterboxd'),
+                            ),
+                          ),
+                   ] ),
+                    )],
                 ),
                 const SizedBox(height: 24),
-                _ImportCard(
-                  title: 'Spotify',
-                  description: 'Import your music listening history from Spotify.',
-                  icon: MediaType.music.icon,
-                  color: MediaType.music.color,
-                  buttonText: 'Coming Soon',
-                  uploadEnabled: false,
+                // Spotify
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          _ImportCard(
+                            title: 'Spotify',
+                            description: 'Import your music listening history from Spotify.',
+                            icon: MediaType.music.icon,
+                            color: MediaType.music.color,
+                            buttonText: 'Coming Soon',
+                            uploadEnabled: false,
+                          ),
+                          
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
