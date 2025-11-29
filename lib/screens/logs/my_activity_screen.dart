@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
+import '../../widgets/media_cover.dart';
 
 class MyActivityScreen extends StatefulWidget {
   const MyActivityScreen({super.key});
@@ -60,15 +61,30 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
               final title = media?.title ?? log.mediaId;
               final type = media?.type.name.toUpperCase();
               return ListTile(
+                leading: MediaCover(
+                  media: media,
+                  fallbackType: media?.type ?? log.mediaType,
+                ),
                 title: Text(title),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (type != null) Text(type, style: const TextStyle(color: Colors.grey)),
-                    if (log.rating != null) Text('Rating: ${log.rating!.toStringAsFixed(1)}'),
+                    if (type != null)
+                      Text(
+                        type,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    if (log.rating != null)
+                      Text('Rating: ${log.rating!.toStringAsFixed(1)}'),
                     if (log.review != null && log.review!.isNotEmpty)
-                      Text(log.review!, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    Text('Consumed: ${log.consumedAt.toLocal().toString().split(' ').first}')
+                      Text(
+                        log.review!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    Text(
+                      'Consumed: ${log.consumedAt.toLocal().toString().split(' ').first}',
+                    )
                   ],
                 ),
                 trailing: IconButton(

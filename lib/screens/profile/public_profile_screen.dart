@@ -7,6 +7,7 @@ import '../../services/firestore_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
+import '../../widgets/media_cover.dart';
 import 'package:go_router/go_router.dart';
 
 class PublicProfileScreen extends StatefulWidget {
@@ -228,13 +229,29 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         itemBuilder: (context, index) {
                           final (log, media) = logsWithMedia[index];
                           return ListTile(
-                            leading: CircleAvatar(
-                              child: Icon(log.mediaType.icon),
+                            leading: MediaCover(
+                              media: media,
+                              fallbackType: media?.type ?? log.mediaType,
                             ),
-                            title: Text(media?.title ?? 'Unknown ${log.mediaType.name}'),
-                            subtitle: Text(
-                              '${log.consumedAt.day}/${log.consumedAt.month}/${log.consumedAt.year}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            title: Text(
+                              media?.title ?? 'Unknown ${log.mediaType.name}',
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${log.consumedAt.day}/${log.consumedAt.month}/${log.consumedAt.year}',
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                if (log.review != null && log.review!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    log.review!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
                           );
                         },

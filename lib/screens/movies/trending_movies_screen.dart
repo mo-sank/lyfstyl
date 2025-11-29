@@ -79,6 +79,7 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
             'title': movie.title,
             'type': 'film',
             'creator': movie.director ?? '',
+            'coverUrl': movie.posterUrl,
           },
         ),
       ),

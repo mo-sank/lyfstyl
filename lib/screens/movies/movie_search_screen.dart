@@ -71,6 +71,7 @@ void _logSearchResult(BuildContext context, MovieItem item) {
             'type': 'movie',
             'creator': item.director,
             'movieData': item.movieData,
+            'coverUrl': item.posterUrl,
           },
         ),
       ),

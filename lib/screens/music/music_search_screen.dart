@@ -131,6 +131,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
             'type': 'music',
             'creator': item.artist,
             'musicData': item.musicData,
+            'coverUrl': item.coverUrl,
           },
         ),
       ),

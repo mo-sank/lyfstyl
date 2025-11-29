@@ -134,6 +134,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
               'publishDate': item.publishDate,
               'id': item.id,
             },
+            // We don't have a direct cover here; FirestoreService can enrich later.
           },
         ),
       ),

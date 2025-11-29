@@ -50,6 +50,9 @@ class _AddLogScreenState extends State<AddLogScreen> {
   String? _publisher;
   int? _readCount;
 
+  // Optional cover art passed from discovery/bookmarks
+  String? _coverUrl;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +64,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
       final data = widget.preFilledData!;
       _titleCtrl.text = data['title'] ?? '';
       _creatorCtrl.text = data['creator'] ?? '';
+      _coverUrl = data['coverUrl'] as String?;
       
       // Set media type based on pre-filled data
       final typeString = data['type']?.toString().toLowerCase();
@@ -126,6 +130,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
         title: _titleCtrl.text.trim(),
         type: _type,
         creator: _creatorCtrl.text.trim().isEmpty ? null : _creatorCtrl.text.trim(),
+        coverUrl: _coverUrl,
       );
       // Getting user ID and filling out the log entry data
       final userId = FirebaseAuth.instance.currentUser!.uid;

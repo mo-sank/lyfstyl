@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../services/firestore_service.dart';
 import '../../services/stats_service.dart';
 import '../../models/log_entry.dart';
+import '../../widgets/media_cover.dart';
 
 class StatsDashboardScreen extends StatefulWidget {
   const StatsDashboardScreen({super.key});
@@ -28,10 +29,13 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final svc = context.read<FirestoreService>();
     final logs = await svc.getUserLogs(uid, limit: 1000);
+    final mediaIds = logs.map((log) => log.mediaId).toSet().toList();
+    final mediaMap = await svc.getMediaByIds(mediaIds);
     final stats = _statsService.calculateUserStats(logs);
     return {
       'stats': stats,
       'logs': logs,
+      'media': mediaMap,
     };
   }
 
@@ -76,6 +80,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           final data = snapshot.data!;
           final stats = data['stats'] as UserStats;
           final logs = data['logs'] as List<LogEntry>;
+          final mediaMap = data['media'] as Map<String, MediaItem>;
           
           if (stats.totalItemsLogged == 0) {
             return Center(
@@ -130,7 +135,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                 ],
                 
                 // Recent Activity
-                _buildRecentActivity(logs),
+                _buildRecentActivity(logs, mediaMap),
               ],
             ),
           );
@@ -446,7 +451,10 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     );
   }
 
-  Widget _buildRecentActivity(List<LogEntry> logs) {
+  Widget _buildRecentActivity(
+    List<LogEntry> logs,
+    Map<String, MediaItem> mediaMap,
+  ) {
     final recentLogs = logs.take(5).toList();
     if (recentLogs.isEmpty) {
       return const SizedBox.shrink();
@@ -461,20 +469,30 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
         ),
         const SizedBox(height: 16),
         ...recentLogs.map((log) {
+          final media = mediaMap[log.mediaId];
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                Icon(log.mediaType.icon, size: 20),
+                MediaCover(
+                  media: media,
+                  fallbackType: media?.type ?? log.mediaType,
+                  size: 48,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Logged ${log.mediaType.name}',
+                        media?.title ?? 'Logged ${log.mediaType.name}',
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
+                      if (media?.creator != null && media!.creator!.isNotEmpty)
+                        Text(
+                          media.creator!,
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                       Text(
                         _formatDate(log.consumedAt),
                         style: TextStyle(

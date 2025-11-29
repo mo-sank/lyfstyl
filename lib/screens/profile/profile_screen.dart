@@ -10,6 +10,7 @@ import '../../services/user_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/log_entry.dart';
 import '../../models/media_item.dart';
+import '../../widgets/media_cover.dart';
 import 'profile_edit_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
@@ -517,10 +518,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
-                              leading: CircleAvatar(
-                                child: Icon(log.mediaType.icon),
+                              leading: MediaCover(
+                                media: media,
+                                fallbackType: media?.type ?? log.mediaType,
                               ),
-                              title: Text(media?.title ?? 'Unknown ${log.mediaType.name}'),
+                              title: Text(
+                                media?.title ?? 'Unknown ${log.mediaType.name}',
+                              ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -536,7 +540,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ],
                                   if (log.review != null && log.review!.isNotEmpty) ...[
                                     const SizedBox(height: 4),
-                                    Text(log.review!, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    Text(
+                                      log.review!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ],
                                   const SizedBox(height: 4),
                                   Text(

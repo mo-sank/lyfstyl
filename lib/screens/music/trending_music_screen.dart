@@ -56,6 +56,7 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
             'type': 'music',
             'creator': item.artist,
             'musicData': item.musicData,
+            'coverUrl': item.coverUrl,
           },
         ),
       ),

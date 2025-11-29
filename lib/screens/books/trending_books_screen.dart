@@ -153,6 +153,7 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
             'title': item.title,
             'type': 'book',
             'creator': item.author,
+            // We'll let FirestoreService enrich coverUrl when possible.
           },
         ),
       ),
