@@ -390,9 +390,26 @@ final uploadPresetValue =
     required String title,
     required MediaType type,
     String? creator,
+    String? coverUrl,
   }) async {
     final existing = await findMediaByTitleAndType(title, type);
-    if (existing != null) return existing;
+    if (existing != null) {
+      // If we have a new cover URL and the existing media is missing one, enrich it.
+      if (coverUrl != null &&
+          coverUrl.isNotEmpty &&
+          (existing.coverUrl == null || existing.coverUrl!.isEmpty)) {
+        await mediaCol.doc(existing.mediaId).set(
+          {
+            'coverUrl': coverUrl,
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          },
+          SetOptions(merge: true),
+        );
+        final updated = await getMediaItem(existing.mediaId);
+        if (updated != null) return updated;
+      }
+      return existing;
+    }
     final now = DateTime.now();
     final dynamic item;
     if (type == MediaType.book) {
@@ -404,7 +421,7 @@ final uploadPresetValue =
         creator: creator,
         releaseDate: null,
         genres: const [],
-        coverUrl: null,
+        coverUrl: coverUrl,
         externalIds: const {},
         createdAt: now,
         updatedAt: now,
@@ -419,7 +436,7 @@ final uploadPresetValue =
         creator: creator,
         releaseDate: null,
         genres: const [],
-        coverUrl: null,
+        coverUrl: coverUrl,
         externalIds: const {},
         createdAt: now,
         updatedAt: now,
@@ -606,6 +623,7 @@ final uploadPresetValue =
       title: title,
       type: mediaType,
       creator: creator,
+      coverUrl: coverUrl,
     );
 
     final existing = await bookmarksCol
