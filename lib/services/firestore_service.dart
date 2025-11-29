@@ -78,11 +78,10 @@ class FirestoreService {
     try {
       // Get Cloudinary credentials
       // For production, store these in environment variables or a config file
-      final cloudNameValue = cloudName ?? 
-          const String.fromEnvironment('dazvumme2', defaultValue: '');
-      final uploadPresetValue = uploadPreset ?? 
-          const String.fromEnvironment('lyfstyl_profile_pictures', defaultValue: '');
-
+      // Hard-coded Cloudinary credentials (replace with your actual values if different)
+final cloudNameValue = cloudName ?? 'dazvumme2'; // your Cloudinary cloud name
+final uploadPresetValue =
+    uploadPreset ?? 'lyfstyl_profile_pictures';   // your unsigned upload preset
       if (cloudNameValue.isEmpty || uploadPresetValue.isEmpty) {
         throw Exception('Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET');
       }
