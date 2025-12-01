@@ -10,6 +10,7 @@ import '../../services/books_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/nyt_book.dart';
 import '../logs/add_log_screen.dart';
+import '../../widgets/fun_loading_widget.dart';
 
 class TrendingBooksScreen extends StatefulWidget {
   const TrendingBooksScreen({super.key});
@@ -248,7 +249,10 @@ class _TrendingBooksScreenState extends State<TrendingBooksScreen> {
           future: _futureOverview,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return FunLoadingWidget(
+                messages: FunLoadingWidget.bookMessages,
+                color: MediaType.book.color,
+              );
             }
             final overview = snapshot.data!;
             final lists = overview.lists;

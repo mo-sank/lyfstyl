@@ -7,6 +7,7 @@ import '../../services/music_trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
+import '../../widgets/fun_loading_widget.dart';
 
 class MusicSearchScreen extends StatefulWidget {
   const MusicSearchScreen({super.key});
@@ -412,7 +413,10 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting ||
             _isLoadingGenre) {
-          return const Center(child: CircularProgressIndicator());
+          return FunLoadingWidget(
+            messages: FunLoadingWidget.musicMessages,
+            color: MediaType.music.color,
+          );
         }
 
         if (snapshot.hasError) {
@@ -540,7 +544,10 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
       future: _searchFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return FunLoadingWidget(
+            messages: FunLoadingWidget.searchMessages,
+            color: MediaType.music.color,
+          );
         }
 
         if (snapshot.hasError) {

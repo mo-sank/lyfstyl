@@ -83,6 +83,7 @@ class LyfstylApp extends StatelessWidget {
             title: 'Lyfstyl',
             theme: buildAppTheme(),
             routerConfig: router,
+            debugShowCheckedModeBanner: false,
           );
         },
       ),

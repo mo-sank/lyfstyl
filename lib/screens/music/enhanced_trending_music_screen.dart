@@ -243,35 +243,9 @@ class _EnhancedTrendingMusicScreenState extends State<EnhancedTrendingMusicScree
                     ),
                     
                     const SizedBox(height: 8),
-                    
+
                     // Rich Data Display
                     _buildRichDataDisplay(item),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Sources
-                    Row(
-                      children: [
-                        ...item.sources.map((source) => Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            source.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.blue[800],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )),
-                        const Spacer(),
-                        const Icon(Icons.add_circle_outline, color: Colors.blue),
-                      ],
-                    ),
                   ],
                 ),
               ),

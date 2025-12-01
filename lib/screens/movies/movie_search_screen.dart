@@ -5,6 +5,7 @@ import '../../services/movie_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
+import '../../widgets/fun_loading_widget.dart';
 
 class MovieSearchScreen extends StatefulWidget {
   const MovieSearchScreen({super.key});
@@ -307,7 +308,10 @@ void _logSearchResult(BuildContext context, MovieItem item) {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting ||
             _isLoadingGenre) {
-          return const Center(child: CircularProgressIndicator());
+          return FunLoadingWidget(
+            messages: FunLoadingWidget.movieMessages,
+            color: MediaType.movie.color,
+          );
         }
 
         if (snapshot.hasError) {
@@ -676,7 +680,10 @@ void _logSearchResult(BuildContext context, MovieItem item) {
       future: _searchFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return FunLoadingWidget(
+            messages: FunLoadingWidget.searchMessages,
+            color: MediaType.movie.color,
+          );
         }
 
         if (snapshot.hasError) {

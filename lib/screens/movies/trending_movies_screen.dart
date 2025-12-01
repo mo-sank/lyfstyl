@@ -7,6 +7,7 @@ import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
 import '../../theme/media_type_theme.dart';
+import '../../widgets/fun_loading_widget.dart';
 
 class TrendingMoviesScreen extends StatefulWidget {
   const TrendingMoviesScreen({super.key});
@@ -172,7 +173,10 @@ class _TrendingMoviesScreenState extends State<TrendingMoviesScreen> {
             const SizedBox(height: 12),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? FunLoadingWidget(
+                      messages: FunLoadingWidget.movieMessages,
+                      color: MediaType.movie.color,
+                    )
                   : _filtered.isEmpty
                       ? const Center(
                           child: Text('No results. Try different keywords.'),

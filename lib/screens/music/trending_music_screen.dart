@@ -7,6 +7,7 @@ import '../../services/music_trending_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/media_item.dart';
 import '../logs/add_log_screen.dart';
+import '../../widgets/fun_loading_widget.dart';
 
 class TrendingMusicScreen extends StatefulWidget {
   const TrendingMusicScreen({super.key});
@@ -148,7 +149,10 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
                 future: _future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
+                    return FunLoadingWidget(
+                      messages: FunLoadingWidget.musicMessages,
+                      color: MediaType.music.color,
+                    );
                   }
                   if (_filtered.isEmpty) {
                     return const Center(
@@ -190,53 +194,17 @@ class _TrendingMusicScreenState extends State<TrendingMusicScreen> {
             // Album Cover
             Expanded(
               flex: 3,
-              child: Stack(
-                children: [
-                  item.coverUrl != null
-                      ? Image.network(
-                          item.coverUrl!,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderCover();
-                          },
-                        )
-                      : _buildPlaceholderCover(),
-                  // Source badges
-                  if (item.sources.isNotEmpty)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: item.sources
-                            .map(
-                              (s) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  s,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                ],
-              ),
+              child: item.coverUrl != null
+                  ? Image.network(
+                      item.coverUrl!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildPlaceholderCover();
+                      },
+                    )
+                  : _buildPlaceholderCover(),
             ),
             // Track Info
             Expanded(
