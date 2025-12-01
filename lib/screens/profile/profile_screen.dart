@@ -283,287 +283,482 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
 
           return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundImage: profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
-                        child: profile.avatarUrl == null ? const Icon(Icons.person, size: 32) : null,
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 800),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Profile Header Card
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundImage: profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
+                              child: profile.avatarUrl == null ? const Icon(Icons.person, size: 50) : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              profile.displayName ?? profile.email,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (profile.username != null)
+                              Text(
+                                '@${profile.username}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  profile.isPublic ? Icons.public : Icons.lock,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  profile.isPublic ? 'Public Profile' : 'Private Profile',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Bio Card
+                    if (profile.bio != null && profile.bio!.isNotEmpty)
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.description, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Bio',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                profile.bio!,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    if (profile.bio != null && profile.bio!.isNotEmpty)
+                      const SizedBox(height: 16),
+
+                    // Interests Card
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(profile.displayName ?? profile.email, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            if (profile.username != null) Text('@${profile.username}', style: const TextStyle(color: Colors.grey)),
+                            const Row(
+                              children: [
+                                Icon(Icons.interests, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Interests',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: profile.interests.isEmpty
+                                  ? [
+                                      const Chip(
+                                        label: Text('No interests yet'),
+                                        backgroundColor: Colors.grey,
+                                      )
+                                    ]
+                                  : profile.interests
+                                      .map((interest) => Chip(
+                                            label: Text(interest),
+                                            backgroundColor: const Color(0xFF9B5DE5).withOpacity(0.2),
+                                            labelStyle: const TextStyle(
+                                              color: Color(0xFF9B5DE5),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ))
+                                      .toList(),
+                            ),
                           ],
                         ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-                    const Text('Bio', style: TextStyle(fontWeight: FontWeight.w600)),
-                    Text(profile.bio!),
-                    const SizedBox(height: 12),
-                  ],
-                  const Text('Interests', style: TextStyle(fontWeight: FontWeight.w600)),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: profile.interests.isEmpty
-                        ? [const Text('No interests yet')]
-                        : profile.interests.map((t) => Chip(label: Text(t))).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Text('Profile visibility:'),
-                      const SizedBox(width: 8),
-                      Chip(
-                        label: Text(profile.isPublic ? 'Public' : 'Private'),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Friends', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.person_add),
-                        tooltip: 'Search users to add',
-                        onPressed: () {
-                          context.push('/search_users'); // We'll create this route next
-                        },
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FutureBuilder<List<UserProfile>>(
-                    future: _friendsFuture,
-                    builder: (context, friendsSnapshot) {
-                      if (friendsSnapshot.connectionState != ConnectionState.done) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                    ),
+                    const SizedBox(height: 16),
 
-                      final friends = friendsSnapshot.data ?? [];
-                      if (friends.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(
-                            child: Text('No friends yet', style: TextStyle(color: Colors.grey)),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: friends.length,
-                        itemBuilder: (context, index) {
-                          final friend = friends[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: friend.avatarUrl != null ? NetworkImage(friend.avatarUrl!) : null,
-                              child: friend.avatarUrl == null ? const Icon(Icons.person) : null,
-                            ),
-                            title: Text(friend.displayName ?? friend.username ?? friend.email),
-                            subtitle: Text('@${friend.username ?? friend.email}'),
-                            onTap: () {
-                              context.push('/profile/${friend.userId}');
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Friend Requests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FutureBuilder<List<UserProfile>>(
-                    future: _friendRequestsFuture,
-                    builder: (context, requestsSnapshot) {
-                      if (requestsSnapshot.connectionState != ConnectionState.done) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final requests = requestsSnapshot.data ?? [];
-                      if (requests.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(
-                            child: Text('No friend requests', style: TextStyle(color: Colors.grey)),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: requests.length,
-                        itemBuilder: (context, index) {
-                          final requester = requests[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: requester.avatarUrl != null 
-                                ? NetworkImage(requester.avatarUrl!) 
-                                : null,
-                              child: requester.avatarUrl == null 
-                                ? const Icon(Icons.person) 
-                                : null,
-                            ),
-                            title: Text(requester.displayName ?? requester.username ?? requester.email),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                    // Friends Card
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.check, color: Colors.green),
-                                  onPressed: () async {
-                                    final svc = context.read<FirestoreService>();
-                                    await svc.acceptFriendRequest(
-                                      FirebaseAuth.instance.currentUser!.uid, 
-                                      requester.userId
-                                    );
-                                    // Refresh friend requests and friends
-                                    setState(() {
-                                      _friendRequestsFuture = _loadFriendRequests();
-                                      _friendsFuture = _loadFriends();
-                                    });
-                                    print('Futures reloaded');
-                                  },
+                                const Row(
+                                  children: [
+                                    Icon(Icons.people, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Friends',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red),
-                                  onPressed: () async {
-                                    final svc = context.read<FirestoreService>();
-                                    await svc.declineFriendRequest(
-                                      FirebaseAuth.instance.currentUser!.uid, 
-                                      requester.userId
-                                    );
-                                    // Refresh friend requests
-                                    setState(() {
-                                      _friendRequestsFuture = _loadFriendRequests();
-                                    });
+                                  icon: const Icon(Icons.person_add, size: 20),
+                                  tooltip: 'Search users to add',
+                                  onPressed: () {
+                                    context.push('/search_users');
                                   },
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                            const SizedBox(height: 12),
+                            FutureBuilder<List<UserProfile>>(
+                              future: _friendsFuture,
+                              builder: (context, friendsSnapshot) {
+                                if (friendsSnapshot.connectionState != ConnectionState.done) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
 
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('My Logged Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: _refreshLogs,
-                        tooltip: 'Refresh logs',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FutureBuilder<List<(LogEntry, MediaItem?)>>(
-                    future: _logsFuture,
-                    builder: (context, logsSnapshot) {
-                      if (logsSnapshot.connectionState != ConnectionState.done) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      final logsWithMedia = logsSnapshot.data ?? [];
-                      if (logsWithMedia.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(
-                            child: Text('No logged items yet', style: TextStyle(color: Colors.grey)),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: logsWithMedia.length,
-                        itemBuilder: (context, index) {
-                          final (log, media) = logsWithMedia[index];
-                          
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: MediaCover(
-                                media: media,
-                                fallbackType: media?.type ?? log.mediaType,
-                              ),
-                              title: Text(
-                                media?.title ?? 'Unknown ${log.mediaType.name}',
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (log.rating != null) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, size: 16, color: Colors.amber),
-                                        const SizedBox(width: 4),
-                                        Text('${log.rating!.toStringAsFixed(1)}/5'),
-                                      ],
+                                final friends = friendsSnapshot.data ?? [];
+                                if (friends.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        'No friends yet',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
                                     ),
-                                  ],
-                                  if (log.review != null && log.review!.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      log.review!,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${log.consumedAt.day}/${log.consumedAt.month}/${log.consumedAt.year}',
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                ],
-                              ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: friends.length,
+                                  separatorBuilder: (context, index) => const Divider(),
+                                  itemBuilder: (context, index) {
+                                    final friend = friends[index];
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        backgroundImage: friend.avatarUrl != null
+                                            ? NetworkImage(friend.avatarUrl!)
+                                            : null,
+                                        child: friend.avatarUrl == null
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      title: Text(
+                                        friend.displayName ?? friend.username ?? friend.email,
+                                      ),
+                                      subtitle: Text('@${friend.username ?? friend.email}'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () {
+                                        context.push('/profile/${friend.userId}');
+                                      },
+                                    );
+                                  },
+                                );
+                              },
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Friend Requests Card
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.person_add_alt, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Friend Requests',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            FutureBuilder<List<UserProfile>>(
+                              future: _friendRequestsFuture,
+                              builder: (context, requestsSnapshot) {
+                                if (requestsSnapshot.connectionState != ConnectionState.done) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+
+                                final requests = requestsSnapshot.data ?? [];
+                                if (requests.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        'No friend requests',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: requests.length,
+                                  separatorBuilder: (context, index) => const Divider(),
+                                  itemBuilder: (context, index) {
+                                    final requester = requests[index];
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        backgroundImage: requester.avatarUrl != null
+                                            ? NetworkImage(requester.avatarUrl!)
+                                            : null,
+                                        child: requester.avatarUrl == null
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      title: Text(
+                                        requester.displayName ?? requester.username ?? requester.email,
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.check_circle, color: Colors.green),
+                                            tooltip: 'Accept',
+                                            onPressed: () async {
+                                              final svc = context.read<FirestoreService>();
+                                              await svc.acceptFriendRequest(
+                                                FirebaseAuth.instance.currentUser!.uid,
+                                                requester.userId,
+                                              );
+                                              setState(() {
+                                                _friendRequestsFuture = _loadFriendRequests();
+                                                _friendsFuture = _loadFriends();
+                                              });
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.cancel, color: Colors.red),
+                                            tooltip: 'Decline',
+                                            onPressed: () async {
+                                              final svc = context.read<FirestoreService>();
+                                              await svc.declineFriendRequest(
+                                                FirebaseAuth.instance.currentUser!.uid,
+                                                requester.userId,
+                                              );
+                                              setState(() {
+                                                _friendRequestsFuture = _loadFriendRequests();
+                                              });
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+
+                    const SizedBox(height: 16),
+
+                    // Logged Items Card
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.history, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'My Logged Items',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh, size: 20),
+                                  onPressed: _refreshLogs,
+                                  tooltip: 'Refresh logs',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            FutureBuilder<List<(LogEntry, MediaItem?)>>(
+                              future: _logsFuture,
+                              builder: (context, logsSnapshot) {
+                                if (logsSnapshot.connectionState != ConnectionState.done) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(24.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+
+                                final logsWithMedia = logsSnapshot.data ?? [];
+                                if (logsWithMedia.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        'No logged items yet',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: logsWithMedia.length,
+                                  separatorBuilder: (context, index) => const Divider(),
+                                  itemBuilder: (context, index) {
+                                    final (log, media) = logsWithMedia[index];
+
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: MediaCover(
+                                        media: media,
+                                        fallbackType: media?.type ?? log.mediaType,
+                                      ),
+                                      title: Text(
+                                        media?.title ?? 'Unknown ${log.mediaType.name}',
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (log.rating != null) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.star, size: 16, color: Colors.amber),
+                                                const SizedBox(width: 4),
+                                                Text('${log.rating!.toStringAsFixed(1)}/5'),
+                                              ],
+                                            ),
+                                          ],
+                                          if (log.review != null && log.review!.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              log.review!,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${log.consumedAt.day}/${log.consumedAt.month}/${log.consumedAt.year}',
+                                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }
