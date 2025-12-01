@@ -83,8 +83,15 @@ class _LoginScreenState extends State<LoginScreen> {
           // Use AuthService loading state instead of local state
           final isLoading = authService.isLoading;
           
-          return Row(
-            children: [
+          return Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/background.png'),
+                fit: BoxFit.contain,
+              ),
+            ),
+            child: Row(
+              children: [
               // Left: Form
               Expanded(
                 flex: 1,
@@ -177,76 +184,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              // Right: Brand panel
-              if (MediaQuery.of(context).size.width > 800)
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    color: const Color(0xFFF5F6FA),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Center(
-                                    child: Image.asset(
-                                      'assets/logo.png', 
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'LYFSTYL', 
-                                  style: TextStyle(
-                                    fontSize: 28, 
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Your all in one media center', 
-                              style: theme.textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 12),
-                            const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _Bullet(
-                                  text: 'Explore new media', 
-                                  color: Color(0xFF00C2A8),
-                                ),
-                                _Bullet(
-                                  text: 'Keep track of your consumption', 
-                                  color: Color(0xFFFF6F61),
-                                ),
-                                _Bullet(
-                                  text: 'Share and discover with friends', 
-                                  color: Color(0xFFFFC857),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+              const Spacer(flex: 1),
+              // Right: Brand pane
+            ]),
           );
         },
       ),
