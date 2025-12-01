@@ -12,6 +12,8 @@ class UserProfile {
   final String? avatarUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+
 
   UserProfile({
     required this.userId,

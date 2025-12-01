@@ -34,8 +34,8 @@ class _BooksScreenState extends State<BooksScreen> with SingleTickerProviderStat
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Trending'),
-            Tab(text: 'Search'),
+            Tab(text: 'Trending Books'),
+            Tab(text: 'Search Books'),
           ],
         ),
       ),

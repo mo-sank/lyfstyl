@@ -27,7 +27,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   bool _uploadingImage = false;
   String? _selectedImagePath;
   Uint8List? _selectedImageBytes; // For web
-  final ImagePicker _imagePicker = ImagePicker();
+  final ImagePicker _imagePicker = ImagePicker(); //For profile picture 
 
   late UserProfile _existing;
 

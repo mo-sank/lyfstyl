@@ -298,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Books',
                   bookLogs.length.toString(),
                   MediaType.book.icon,
-                  MediaType.book.color,
+                  const Color.fromARGB(255, 235, 166, 38),
                 ),
               ),
               const SizedBox(width: 12),
@@ -535,7 +535,7 @@ Widget _buildMediaContent(List<(LogEntry, MediaItem?)> logs, MediaType type) {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
-                  'Trending ${type.name}',
+                  'Trending ${type.unit}',
                   Icons.trending_up,
                   type.color,
                   () {
