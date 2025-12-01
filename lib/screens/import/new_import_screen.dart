@@ -143,8 +143,8 @@ To get your watching history from Letterboxd:
                             description: 'Import your music listening history from Spotify.',
                             icon: MediaType.music.icon,
                             color: MediaType.music.color,
-                            buttonText: 'Coming Soon',
-                            uploadEnabled: false,
+                            buttonText: 'Upload Spotify CSV',
+                            uploadEnabled: true,
                           ),
                           
                         ],
