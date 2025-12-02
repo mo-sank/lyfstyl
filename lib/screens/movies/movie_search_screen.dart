@@ -159,6 +159,27 @@ void _logSearchResult(BuildContext context, MovieItem item) {
     });
   }
 
+  Widget _buildPlaceholderPoster() {
+    return Container(
+      width: double.infinity,
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(MediaType.movie.icon, color: Colors.grey, size: 48),
+          const SizedBox(height: 8),
+          const Text(
+            'No Poster',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -214,7 +235,7 @@ void _logSearchResult(BuildContext context, MovieItem item) {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Color(0xFF9B5DE5) : Colors.grey[200],
+        backgroundColor: isSelected ? MediaType.movie.color : Colors.grey[200],
         foregroundColor: isSelected ? Colors.white : Colors.grey[700],
         elevation: isSelected ? 2 : 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -364,7 +385,7 @@ void _logSearchResult(BuildContext context, MovieItem item) {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                color: Color(0xFF9B5DE5),
+                color: MediaType.movie.color,
                 child: Column(
                   children: [
                     Row(
@@ -381,27 +402,34 @@ void _logSearchResult(BuildContext context, MovieItem item) {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${results.length} movies - trending and popular',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Color(0xFF9B5DE5)),
-                    ),
                   ],
                 ),
               ),
 
             // Results list
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
+              child: GridView.builder(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
                 itemCount: results.length,
                 itemBuilder: (context, index) {
-                  final item = results[index];
-                  return _buildSearchResultCard(item);
+                  final movie = results[index];
+                  return _buildMovieCard(context, movie);
                 },
               ),
+              // child: ListView.builder(
+              //   padding: const EdgeInsets.all(16),
+              //   itemCount: results.length,
+              //   itemBuilder: (context, index) {
+              //     final item = results[index];
+              //     return _buildSearchResultCard(item);
+              //   },
+              // ),
             ),
           ],
         );
@@ -409,138 +437,355 @@ void _logSearchResult(BuildContext context, MovieItem item) {
     );
   }
 
-    Widget _buildSearchResultCard(MovieItem item) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _logSearchResult(context, item),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+
+  void _showMovieDetails(BuildContext context, MovieItem movie) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(movie.title),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Album Art
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
+              if (movie.posterUrl != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      movie.posterUrl!,
+                      width: 120,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 120,
+                          height: 180,
+                          color: Colors.grey[300],
+                          child: Icon(
+                            MediaType.movie.icon,
+                            color: Colors.grey,
+                            size: 48,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-                child: item.posterUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.posterUrl!,
+              if (movie.releaseDate != null)
+                Text('Release Date: ${movie.releaseDate!.year}'),
+              if (movie.genres.isNotEmpty)
+                Text('Genres: ${movie.genres.join(', ')}'),
+              if (movie.rating != null)
+                Text('Rating: ${movie.rating!.toStringAsFixed(1)}/10'),
+              if (movie.overview != null && movie.overview!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('Overview: ${movie.overview}'),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _logSearchResult(context, movie);
+            },
+            child: const Text('Add Log'),
+          ),
+        ],
+      ),
+    );
+  }
+    Widget _buildMovieCard(BuildContext context, MovieItem movie) {
+    return Card(
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showMovieDetails(context, movie),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Movie Poster
+            Expanded(
+              flex: 3,
+              child: Stack(
+                children: [
+                  movie.posterUrl != null
+                      ? Image.network(
+                          movie.posterUrl!,
+                          width: double.infinity,
+                          height: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              MediaType.movie.icon,
-                              size: 40,
-                              color: Colors.grey,
-                            );
+                            return _buildPlaceholderPoster();
                           },
+                        )
+                      : _buildPlaceholderPoster(),
+                  // Rating badge
+                  if (movie.rating != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      )
-                    : Icon(
-                        MediaType.movie.icon,
-                        size: 40,
-                        color: Colors.grey,
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              movie.rating!.toStringAsFixed(1),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+                ],
               ),
-
-              const SizedBox(width: 16),
-
-              // Track Info
-              Expanded(
+            ),
+            // Movie Info
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      movie.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
-
-                   
-                     const SizedBox(height: 4),
-
-                    // Year
-                    Text(
-                      item.releaseDate != null ? '${item.releaseDate!.year}' : '',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-      
-
-                    const SizedBox(height: 8),
-
-                    // Rich Data Display
-                    _buildRichDataDisplay(item),
-
-                    const SizedBox(height: 8),
-
-                    // Action Button
+                    const SizedBox(height: 4),
+                    if (movie.genres.isNotEmpty)
+                      Text(
+                        movie.genres.take(2).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    if (movie.releaseDate != null)
+                      Text(
+                        movie.releaseDate!.year.toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    if (movie.overview != null && movie.overview!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        movie.overview!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    // Action buttons
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                        IconButton(
+                          icon: const Icon(
+                            Icons.bookmark_border,
+                            size: 20,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                          color: Colors.orangeAccent,
+                          onPressed: () => _bookmarkMovie(movie),
+                          tooltip: 'Save bookmark',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            size: 20,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.add,
-                                size: 16,
-                                color: Color(0xFF9B5DE5),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Log This',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF9B5DE5),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                          color: Colors.blue,
+                          onPressed: () => _logSearchResult(context, movie),
+                          tooltip: 'Log this movie',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_border,
-                  color: Colors.orangeAccent,
-                ),
-                onPressed: () => _bookmarkMovie(item),
-                tooltip: 'Save bookmark',
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+
+  //   Widget _buildSearchResultCard(MovieItem item) {
+  //   return Card(
+  //     margin: const EdgeInsets.only(bottom: 16),
+  //     elevation: 2,
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //     child: InkWell(
+  //       borderRadius: BorderRadius.circular(12),
+  //       onTap: () => _logSearchResult(context, item),
+  //       child: Padding(
+  //         padding: const EdgeInsets.all(16),
+  //         child: Row(
+  //           children: [
+  //             // Album Art
+  //             Container(
+  //               width: 80,
+  //               height: 80,
+  //               decoration: BoxDecoration(
+  //                 borderRadius: BorderRadius.circular(8),
+  //                 color: Colors.grey[200],
+  //               ),
+  //               child: item.posterUrl != null
+  //                   ? ClipRRect(
+  //                       borderRadius: BorderRadius.circular(8),
+  //                       child: Image.network(
+  //                         item.posterUrl!,
+  //                         fit: BoxFit.cover,
+  //                         errorBuilder: (context, error, stackTrace) {
+  //                           return Icon(
+  //                             MediaType.movie.icon,
+  //                             size: 40,
+  //                             color: Colors.grey,
+  //                           );
+  //                         },
+  //                       ),
+  //                     )
+  //                   : Icon(
+  //                       MediaType.movie.icon,
+  //                       size: 40,
+  //                       color: Colors.grey,
+  //                     ),
+  //             ),
+
+  //             const SizedBox(width: 16),
+
+  //             // Track Info
+  //             Expanded(
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   // Title
+  //                   Text(
+  //                     item.title,
+  //                     style: const TextStyle(
+  //                       fontSize: 16,
+  //                       fontWeight: FontWeight.bold,
+  //                     ),
+  //                     maxLines: 2,
+  //                     overflow: TextOverflow.ellipsis,
+  //                   ),
+
+                   
+  //                    const SizedBox(height: 4),
+
+  //                   // Year
+  //                   Text(
+  //                     item.releaseDate != null ? '${item.releaseDate!.year}' : '',
+  //                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+  //                     maxLines: 1,
+  //                     overflow: TextOverflow.ellipsis,
+  //                   ),
+      
+
+  //                   const SizedBox(height: 8),
+
+  //                   // Rich Data Display
+  //                   _buildRichDataDisplay(item),
+
+  //                   const SizedBox(height: 8),
+
+  //                   // Action Button
+  //                   Row(
+  //                     children: [
+  //                       const Spacer(),
+  //                       Container(
+  //                         padding: const EdgeInsets.symmetric(
+  //                           horizontal: 12,
+  //                           vertical: 6,
+  //                         ),
+  //                         decoration: BoxDecoration(
+  //                           color: Colors.white,
+  //                           borderRadius: BorderRadius.circular(16),
+  //                         ),
+  //                         child: Row(
+  //                           mainAxisSize: MainAxisSize.min,
+  //                           children: [
+  //                             const Icon(
+  //                               Icons.add,
+  //                               size: 16,
+  //                               color: Color(0xFF9B5DE5),
+  //                             ),
+  //                             const SizedBox(width: 4),
+  //                             Text(
+  //                               'Log This',
+  //                               style: TextStyle(
+  //                                 fontSize: 12,
+  //                                 color: Color(0xFF9B5DE5),
+  //                                 fontWeight: FontWeight.w500,
+  //                               ),
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             IconButton(
+  //               icon: const Icon(
+  //                 Icons.bookmark_border,
+  //                 color: Colors.orangeAccent,
+  //               ),
+  //               onPressed: () => _bookmarkMovie(item),
+  //               tooltip: 'Save bookmark',
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Future<void> _browseByGenre(String genre) async {
     setState(() {
@@ -610,7 +855,7 @@ void _logSearchResult(BuildContext context, MovieItem item) {
                     ElevatedButton(
                       onPressed: _isLoading ? null : _searchMovies,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF9B5DE5),
+                        backgroundColor: MediaType.movie.color,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -729,12 +974,18 @@ void _logSearchResult(BuildContext context, MovieItem item) {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
+        return GridView.builder(
+          gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            childAspectRatio: 0.65,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
           itemCount: results.length,
           itemBuilder: (context, index) {
-            final item = results[index];
-            return _buildSearchResultCard(item);
+            final movie = results[index];
+            return _buildMovieCard(context, movie);
           },
         );
       },

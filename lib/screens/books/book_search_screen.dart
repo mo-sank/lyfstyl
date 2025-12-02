@@ -1,7 +1,3 @@
-// Trending Books
-// Cami Krugel
-// 6 Hours
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,21 +19,17 @@ class SearchBooksScreen extends StatefulWidget {
 class _SearchBooksScreenState extends State<SearchBooksScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   late BooksService _service;
+
   Future<List<Book>>? _searchFuture;
   Future<List<Book>>? _subjectFuture;
-  List<Book> _searchResults = [];
-  List<Book> _subjectResults = [];
-  bool _isSearching = false;
-  bool _isLoadingSubject = false;
 
-  // Mode: 'search' or 'browse'
+  int _searchRequestId = 0;
+  int _subjectRequestId = 0;
+
   String _currentMode = 'browse';
   String? _selectedSubject;
-
-  // Search type: 'title' or 'author'
   String _searchType = 'title';
 
-  // Popular subjects for browsing
   static const List<String> _popularSubjects = [
     'Fiction',
     'Nonfiction',
@@ -60,48 +52,46 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
   Future<void> _searchBooks() async {
     if (_searchCtrl.text.trim().isEmpty) return;
 
+    final requestId = ++_searchRequestId;
+    final query = _searchCtrl.text.trim();
+
     setState(() {
-      _isSearching = true;
       _currentMode = 'search';
-      _searchFuture = _performSearch();
+      _searchFuture = _performSearch(query, requestId);
     });
   }
 
-  Future<List<Book>> _performSearch() async {
+  Future<List<Book>> _performSearch(String query, int requestId) async {
     try {
-      final query = _searchCtrl.text.trim();
-      if (_searchType == 'title') {
-        return await _service.fetchBooks(query, '', '');
-      } else {
-        return await _service.fetchBooks('', query, '');
-      }
+      final results = _searchType == 'title'
+          ? await _service.fetchBooks(query, '', '')
+          : await _service.fetchBooks('', query, '');
+
+      if (requestId != _searchRequestId) return [];
+      return results;
     } catch (e) {
       print('Search error: $e');
-      return [];
-    } finally {
-      setState(() => _isSearching = false);
+      rethrow;
     }
   }
 
   Future<void> _browseBySubject(String subject) async {
+    final requestId = ++_subjectRequestId;
     setState(() {
-      _isLoadingSubject = true;
       _currentMode = 'browse';
       _selectedSubject = subject;
-      _subjectFuture = _performSubjectBrowse(subject);
+      _subjectFuture = _performSubjectBrowse(subject, requestId);
     });
   }
 
-  Future<List<Book>> _performSubjectBrowse(String subject) async {
+  Future<List<Book>> _performSubjectBrowse(String subject, int requestId) async {
     try {
       final results = await _service.fetchBooks('', '', subject);
-      _subjectResults = results;
+      if (requestId != _subjectRequestId) return [];
       return results;
     } catch (e) {
       print('Subject browse error: $e');
-      return [];
-    } finally {
-      setState(() => _isLoadingSubject = false);
+      rethrow;
     }
   }
 
@@ -109,7 +99,6 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     setState(() {
       _currentMode = 'browse';
       _searchCtrl.clear();
-      _searchResults = [];
       _searchFuture = null;
     });
   }
@@ -117,7 +106,6 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
   void _switchToSearch() {
     setState(() {
       _currentMode = 'search';
-      _subjectResults = [];
       _subjectFuture = null;
     });
   }
@@ -129,13 +117,12 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
           preFilledData: {
             'title': item.title,
             'type': 'book',
-            'creator': (item.authors != null ? item.authors!.join(', ') : ''),
+            'creator': (item.authors?.isNotEmpty == true ? item.authors!.join(', ') : ''),
             'bookData': {
               'subjects': item.subjects,
               'publishDate': item.publishDate,
               'id': item.id,
             },
-            // We don't have a direct cover here; FirestoreService can enrich later.
           },
         ),
       ),
@@ -152,13 +139,11 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     }
 
     final firestore = context.read<FirestoreService>();
-
     try {
       final coverUrl = await _service.fetchOpenLibraryCoverByTitleAuthor(
         item.title,
         item.authors?.isNotEmpty == true ? item.authors!.first : '',
       );
-
       await firestore.bookmarkMedia(
         userId: user.uid,
         mediaType: MediaType.book,
@@ -172,14 +157,14 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
         },
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Saved to bookmarks')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saved to bookmarks')),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to bookmark book')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to bookmark book')),
+      );
     }
   }
 
@@ -200,32 +185,23 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
       ),
       body: Column(
         children: [
-          // Mode Toggle
+          // Mode toggle
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.white,
             child: Row(
               children: [
                 Expanded(
-                  child: _buildModeButton(
-                    'browse',
-                    'Browse by Genre',
-                    Icons.category,
-                  ),
+                  child: _buildModeButton('browse', 'Browse by Genre', Icons.category),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildModeButton(
-                    'search',
-                    'Search Specific',
-                    Icons.search,
-                  ),
+                  child: _buildModeButton('search', 'Search Specific', Icons.search),
                 ),
               ],
             ),
           ),
-
-          // Content based on mode
+          // Mode-specific content
           if (_currentMode == 'browse') _buildBrowseContent(),
           if (_currentMode == 'search') _buildSearchContent(),
         ],
@@ -237,14 +213,11 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     final isSelected = _currentMode == mode;
     return ElevatedButton(
       onPressed: () {
-        if (mode == 'browse') {
-          _switchToBrowse();
-        } else {
-          _switchToSearch();
-        }
+        if (mode == 'browse') _switchToBrowse();
+        else _switchToSearch();
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Color(0xFF9B5DE5): Colors.grey[200],
+        backgroundColor: isSelected ? MediaType.book.color : Colors.grey[200],
         foregroundColor: isSelected ? Colors.white : Colors.grey[700],
         elevation: isSelected ? 2 : 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -261,7 +234,6 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     return Expanded(
       child: Column(
         children: [
-          // Subject Selection
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -271,23 +243,17 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
               children: [
                 Text(
                   'Choose a genre to discover books',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _popularSubjects.map((subject) {
-                    return _buildSubjectChip(subject);
-                  }).toList(),
+                  children: _popularSubjects.map(_buildSubjectChip).toList(),
                 ),
               ],
             ),
           ),
-
-          // Results
           Expanded(child: _buildBrowseResults()),
         ],
       ),
@@ -316,10 +282,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                                   icon: const Icon(Icons.clear),
                                   onPressed: () {
                                     _searchCtrl.clear();
-                                    setState(() {
-                                      _searchResults = [];
-                                      _searchFuture = null;
-                                    });
+                                    setState(() => _searchFuture = null);
                                   },
                                 )
                               : null,
@@ -335,62 +298,36 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: _isSearching ? null : _searchBooks,
+                      onPressed: _searchBooks,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF9B5DE5),
+                        backgroundColor: MediaType.book.color,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: _isSearching
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Text('Search'),
+                      child: const Text('Search'),
                     ),
                   ],
                 ),
-                // Move the toggle below the text input
                 Row(
                   children: [
                     Radio<String>(
                       value: 'title',
                       groupValue: _searchType,
-                      onChanged: (val) {
-                        setState(() => _searchType = val!);
-                      },
+                      onChanged: (val) => setState(() => _searchType = val!),
                     ),
                     const Text('Title'),
                     const SizedBox(width: 16),
                     Radio<String>(
                       value: 'author',
                       groupValue: _searchType,
-                      onChanged: (val) {
-                        setState(() => _searchType = val!);
-                      },
+                      onChanged: (val) => setState(() => _searchType = val!),
                     ),
                     const Text('Author'),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Search for specific books by title or author',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                ),
               ],
             ),
           ),
-          // Search Results
           Expanded(child: _buildSearchResults()),
         ],
       ),
@@ -402,10 +339,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
       label: Text(subject.toUpperCase()),
       onPressed: () => _browseBySubject(subject),
       backgroundColor: Colors.grey[100],
-      labelStyle: TextStyle(
-        color: MediaType.book.color,
-        fontWeight: FontWeight.w500,
-      ),
+      labelStyle: TextStyle(color: MediaType.book.color, fontWeight: FontWeight.w500),
       avatar: Icon(MediaType.book.icon, size: 16, color: MediaType.book.color),
     );
   }
@@ -418,19 +352,9 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
           children: [
             Icon(Icons.category, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text(
-              'Choose a subject to discover books',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
-            ),
+            Text('Choose a subject to discover books', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
             const SizedBox(height: 8),
-            Text(
-              'Tap any subject above to see trending and popular books',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-            ),
+            Text('Tap any subject above to see trending and popular books', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[500])),
           ],
         ),
       );
@@ -439,105 +363,15 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
     return FutureBuilder<List<Book>>(
       future: _subjectFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting ||
-            _isLoadingSubject) {
-          return FunLoadingWidget(
-            messages: FunLoadingWidget.bookMessages,
-            color: MediaType.book.color,
-          );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return FunLoadingWidget(messages: FunLoadingWidget.bookMessages, color: MediaType.book.color);
         }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error: ${snapshot.error}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => _browseBySubject('Fiction'), // Retry with Fiction
-                  child: const Text('Try Again'),
-                ),
-              ],
-            ),
-          );
-        }
+        if (snapshot.hasError) return _buildErrorState(() => _browseBySubject(_selectedSubject ?? 'Fiction'), snapshot.error.toString());
 
         final results = snapshot.data ?? [];
+        if (results.isEmpty) return _buildEmptyState('No books found for this subject', 'Try selecting a different subject');
 
-        if (results.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.book_outlined, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(
-                  'No books found for this subject',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Try selecting a different subject',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            // Subject header
-            if (_selectedSubject != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: Color(0xFF9B5DE5),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(MediaType.book.icon, color: Colors.black),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_selectedSubject!.toUpperCase()} Books',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${results.length} books - trending and popular',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Color(0xFF9B5DE5)),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Results list
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: results.length,
-                itemBuilder: (context, index) {
-                  final item = results[index];
-                  return _buildSearchResultCard(item);
-                },
-              ),
-            ),
-          ],
-        );
+        return _buildGrid(results, _selectedSubject?.toUpperCase());
       },
     );
   }
@@ -550,19 +384,9 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
           children: [
             Icon(Icons.search, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text(
-              'Search for specific books',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
-            ),
+            Text('Search for specific books', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
             const SizedBox(height: 8),
-            Text(
-              'Enter a book title or author to get started',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-            ),
+            Text('Enter a book title or author to get started', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[500])),
           ],
         ),
       );
@@ -572,259 +396,152 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
       future: _searchFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return FunLoadingWidget(
-            messages: FunLoadingWidget.searchMessages,
-            color: MediaType.book.color,
-          );
+          return FunLoadingWidget(messages: FunLoadingWidget.searchMessages, color: MediaType.book.color);
         }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error: ${snapshot.error}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _searchBooks,
-                  child: const Text('Try Again'),
-                ),
-              ],
-            ),
-          );
-        }
+        if (snapshot.hasError) return _buildErrorState(_searchBooks, snapshot.error.toString());
 
         final results = snapshot.data ?? [];
+        if (results.isEmpty) return _buildEmptyState('No results found', 'Try searching with different keywords');
 
-        if (results.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.book_outlined, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(
-                  'No results found',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Try searching with different keywords',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: results.length,
-          itemBuilder: (context, index) {
-            final item = results[index];
-            return _buildSearchResultCard(item);
-          },
-        );
+        return _buildGrid(results, null);
       },
     );
   }
 
-  Widget _buildSearchResultCard(Book item) {
+  Widget _buildErrorState(VoidCallback retry, String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text('Error: $error'),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: retry, child: const Text('Try Again')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.book_outlined, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrid(List<Book> results, String? heading) {
+    return Column(
+      children: [
+        if (heading != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: MediaType.book.color,
+            child: Row(
+              children: [
+                Icon(MediaType.book.icon, color: Colors.black),
+                const SizedBox(width: 8),
+                Text(heading + ' Books', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: results.length,
+            itemBuilder: (context, index) => _buildBookGridCard(results[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBookGridCard(Book item) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: () => _logSearchResult(context, item),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Book Cover
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
-                ),
-                child: item.id.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          'https://covers.openlibrary.org/b/olid/${item.id}-M.jpg?default=false',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              MediaType.book.icon,
-                              size: 40,
-                              color: Colors.grey,
-                            );
-                          },
-                        ),
-                      )
-                    : Icon(
-                        MediaType.book.icon,
-                        size: 40,
-                        color: Colors.grey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: item.id.isNotEmpty
+                  ? Image.network(
+                      'https://covers.openlibrary.org/b/olid/${item.id}-M.jpg?default=false',
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        color: Colors.grey[300],
+                        child: Center(child: Icon(MediaType.book.icon, size: 40, color: Colors.grey)),
                       ),
-              ),
-
-              const SizedBox(width: 16),
-
-              // Book Info
-              Expanded(
+                    )
+                  : Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.grey[300],
+                      child: Center(child: Icon(MediaType.book.icon, size: 40, color: Colors.grey)),
+                    ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
+                    Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 4),
-
-                    // Author
-                    Text(
-                      item.authors != null && item.authors!.isNotEmpty
-                          ? item.authors!.join(', ')
-                          : '',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Rich Data Display
-                    _buildRichDataDisplay(item),
-
-                    const SizedBox(height: 8),
-
-                    // Action Button
+                    Text(item.authors?.join(', ') ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    const Spacer(),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.add,
-                                size: 16,
-                                color: Color(0xFF9B5DE5),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Log This',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF9B5DE5),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.bookmark_border, size: 20),
+                          color: Colors.orangeAccent,
+                          onPressed: () => _bookmarkBook(item),
+                          tooltip: 'Save bookmark',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, size: 20),
+                          color: MediaType.book.color,
+                          onPressed: () => _logSearchResult(context, item),
+                          tooltip: 'Log this book',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_border,
-                  color: Colors.orangeAccent,
-                ),
-                onPressed: () => _bookmarkBook(item),
-                tooltip: 'Save bookmark',
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Widget _buildRichDataDisplay(Book item) {
-    final List<Widget> infoWidgets = [];
-
-    // Subjects
-    if (item.subjects != null && item.subjects!.isNotEmpty) {
-      final subjects = item.subjects!.take(2).join(', ');
-      infoWidgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.category, size: 12, color: Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              subjects,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Publish Date
-    if (item.publishDate != null && item.publishDate!.isNotEmpty) {
-      infoWidgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              item.publishDate!,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Book ID
-    if (item.id.isNotEmpty) {
-      infoWidgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.info_outline, size: 12, color: Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              item.id,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (infoWidgets.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Wrap(spacing: 12, runSpacing: 2, children: infoWidgets);
   }
 }

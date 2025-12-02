@@ -237,7 +237,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Color(0xFF9B5DE5): Colors.grey[200],
+        backgroundColor: isSelected ? MediaType.music.color: Colors.grey[200],
         foregroundColor: isSelected ? Colors.white : Colors.grey[700],
         elevation: isSelected ? 2 : 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -330,7 +330,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                     ElevatedButton(
                       onPressed: _isSearching ? null : _searchMusic,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF9B5DE5),
+                        backgroundColor: MediaType.music.color,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -469,7 +469,7 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                color: Color(0xFF9B5DE5),
+                color: MediaType.music.color,
                 child: Column(
                   children: [
                     Row(
@@ -486,31 +486,202 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${results.length} songs - trending and popular',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Color(0xFF9B5DE5)),
-                    ),
                   ],
                 ),
               ),
 
             // Results list
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
+              child: GridView.builder(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
                 itemCount: results.length,
                 itemBuilder: (context, index) {
                   final item = results[index];
-                  return _buildSearchResultCard(item);
+                  return _buildMusicCard(context, item);
                 },
               ),
             ),
           ],
         );
       },
+    );
+  }
+
+Widget _buildMusicCard(BuildContext context, MusicTrendingItem item) {
+    return Card(
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showMusicDetails(context, item),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Album Cover
+            Expanded(
+              flex: 3,
+              child: item.coverUrl != null
+                  ? Image.network(
+                      item.coverUrl!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildPlaceholderCover();
+                      },
+                    )
+                  : _buildPlaceholderCover(),
+            ),
+            // Track Info
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.artist,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    if (item.musicData['album'] != null)
+                      Text(
+                        item.musicData['album'].toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    const Spacer(),
+                    // Action buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.bookmark_border,
+                            size: 20,
+                          ),
+                          color: Colors.orangeAccent,
+                          onPressed: () => _bookmarkItem(item),
+                          tooltip: 'Save bookmark',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            size: 20,
+                          ),
+                          color: Colors.blue,
+                          onPressed: () => _logSearchResult(context, item),
+                          tooltip: 'Log this track',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+ void _showMusicDetails(BuildContext context, MusicTrendingItem item) {
+    final data = item.musicData;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(item.title),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (item.coverUrl != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      item.coverUrl!,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 120,
+                          height: 120,
+                          color: Colors.grey[300],
+                          child: Icon(
+                            MediaType.music.icon,
+                            color: Colors.grey,
+                            size: 48,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              Text('Artist: ${item.artist}'),
+              if (data['album'] != null && data['album'].toString().isNotEmpty)
+                Text('Album: ${data['album']}'),
+              if (data['year'] != null)
+                Text('Year: ${data['year']}'),
+              if (data['durationSeconds'] != null)
+                Text(
+                  'Duration: ${_formatDuration(data['durationSeconds'] as int)}',
+                ),
+              if (data['genres'] != null && (data['genres'] as List).isNotEmpty)
+                Text('Genres: ${(data['genres'] as List).join(', ')}'),
+              if (item.sources.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('Sources: ${item.sources.join(', ')}'),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _logSearchResult(context, item);
+            },
+            child: const Text('Add Log'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -593,17 +764,24 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
+        return GridView.builder(
+          gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 6,
+            childAspectRatio: 0.85,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
           itemCount: results.length,
           itemBuilder: (context, index) {
             final item = results[index];
-            return _buildSearchResultCard(item);
+            return _buildMusicCard(context, item);
           },
         );
       },
     );
   }
+
 
   Widget _buildSearchResultCard(MusicTrendingItem item) {
     return Card(
@@ -701,14 +879,14 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
                               const Icon(
                                 Icons.add,
                                 size: 16,
-                                color: Color(0xFF9B5DE5),
+                                color: Color(0xFF00C2A8),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Log This',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF9B5DE5),
+                                  color: MediaType.music.color,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -818,5 +996,36 @@ class _MusicSearchScreenState extends State<MusicSearchScreen> {
     }
 
     return Wrap(spacing: 12, runSpacing: 2, children: infoWidgets);
+  }
+
+  String _formatDuration(int seconds) {
+    final duration = Duration(seconds: seconds);
+    if (duration.inMinutes > 0) {
+      return '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
+    }
+    return '${duration.inSeconds}s';
+  }
+
+  
+  Widget _buildPlaceholderCover() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(MediaType.music.icon, color: Colors.grey, size: 48),
+          const SizedBox(height: 8),
+          const Text(
+            'No Cover',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
   }
 }
