@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'media_item.dart';
 import 'package:flutter/material.dart';
 import '../screens/logs/edit_log_screen.dart'; // <-- Add this line
+import 'package:provider/provider.dart';
+import '../services/firestore_service.dart';
 
 class LogEntry {
   final String logId; // doc id
@@ -163,7 +165,7 @@ class LogEntry {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  // Edit and Close buttons
+                  // Edit, Delete, and Close buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -180,6 +182,54 @@ class LogEntry {
                               ),
                             ),
                           );
+                        },
+                      ),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        label: const Text('Delete'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        onPressed: () async {
+                          // Show confirmation dialog
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Log'),
+                              content: const Text('Are you sure you want to delete this log? This action cannot be undone.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                          
+                          if (confirmed == true && context.mounted) {
+                            try {
+                              // Import FirestoreService and Provider at the top
+                              final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                              await firestoreService.deleteLog(log.logId);
+                              
+                              if (context.mounted) {
+                                Navigator.of(context).pop(); // Close the media dialog
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Log deleted successfully')),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to delete log: $e')),
+                                );
+                              }
+                            }
+                          }
                         },
                       ),
                       ElevatedButton(
