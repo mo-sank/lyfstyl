@@ -85,11 +85,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? profileUrl;
     if (profile.isPublic && profile.username != null) {
       final baseUrl = _getBaseUrl();
-      profileUrl = "$baseUrl/profile/${profile.username}";
+      profileUrl = "$baseUrl/#/profile/${profile.username}";
     } else if (profile.isPublic) {
       // Fallback to user ID if no username is set
       final baseUrl = _getBaseUrl();
-      profileUrl = "$baseUrl/profile/${user.uid}";
+      profileUrl = "$baseUrl/#/profile/${user.uid}";
     }
 
     // Debug: Print the generated URL

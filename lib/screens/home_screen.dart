@@ -263,14 +263,20 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Welcome to Lyfstyl',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Image.asset(
+                  'assets/new_logo.png',
+                  fit:BoxFit.contain,
+                  height: 100,
+                  alignment: Alignment.centerLeft,
                 ),
+                // const Text(
+                //   'Welcome to Lyfstyl',
+                //   style: TextStyle(
+                //     color: Colors.white,
+                //     fontSize: 32,
+                //     fontWeight: FontWeight.bold,
+                //   ),
+                // ),
                 const SizedBox(height: 8),
                 Text(
                   'Track all your media in one place • ${logs.length} items logged',
@@ -476,41 +482,45 @@ Widget _buildMediaContent(List<(LogEntry, MediaItem?)> logs, MediaType type) {
           // Header Card
           Container(
             width: double.infinity,
-            height: 120,
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: type.color,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          type.title,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
+            child: Row(//Padding(
+              //child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        type.logo,
+                        fit: BoxFit.contain,
+                        height: 100,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      // Text(
+                      //   type.title,
+                      //   style: TextStyle(
+                      //     color: Colors.white,
+                      //     fontSize: 28,
+                      //     fontWeight: FontWeight.bold,
+                      //   ),
+                      // ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${logs.length} ${type.unit} logged',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${logs.length} ${type.unit} logged',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

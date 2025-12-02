@@ -14,9 +14,9 @@ import '../models/media_item.dart';
 
 
 enum MediaType { 
-  movie("Movies & Shows",Icons.movie,Color(0xFFFF6F61),"movies",TrendingMoviesScreen(),MovieSearchScreen()), 
-  book("Books",Icons.menu_book, Color(0xFFFFC857),"books", TrendingBooksScreen(),SearchBooksScreen()),
-   music("Music",Icons.music_note,Color(0xFF00C2A8),"tracks",TrendingMusicScreen(),MusicSearchScreen());    
+  movie("Movies & Shows",Icons.movie,Color(0xFFFF6F61),"movies",TrendingMoviesScreen(),MovieSearchScreen(), 'assets/movies.png'), 
+  book("Books",Icons.menu_book, Color(0xFFFFC857),"books", TrendingBooksScreen(),SearchBooksScreen(), 'assets/books.png'),
+   music("Music",Icons.music_note,Color(0xFF00C2A8),"tracks",TrendingMusicScreen(),MusicSearchScreen(), 'assets/music.png');    
 
       final String title;
       final IconData icon;
@@ -24,8 +24,9 @@ enum MediaType {
       final String unit;
       final dynamic trending;
       final dynamic search;
+      final String logo;
 
-      const MediaType(this.title, this.icon, this.color, this.unit, this.trending, this.search);
+      const MediaType(this.title, this.icon, this.color, this.unit, this.trending, this.search, this.logo);
   }
 
 
