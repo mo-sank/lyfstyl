@@ -20,6 +20,7 @@ import 'theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/profile/public_profile_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -49,6 +50,14 @@ class LyfstylApp extends StatelessWidget {
           final router = GoRouter(
             initialLocation: '/',
             debugLogDiagnostics: true, // Enable debug logging
+            redirect: (context, state){
+              // Allow public profiles without any authentication checks
+              if (state.matchedLocation.startsWith('/profile/')) {
+                print('DEBUG ROUTER REDIRECT: Allowing public profile access');
+                return null; // Don't redirect, allow the route
+              }
+              return null; // For all other routes, no redirect
+            },
             routes: [
               // Public profile route - MUST come first to match before '/'
               GoRoute(
