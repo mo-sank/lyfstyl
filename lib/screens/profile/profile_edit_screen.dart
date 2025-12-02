@@ -76,8 +76,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       );
 
       if (pickedFile != null) {
+        print('Image picked: ${pickedFile.path}');
         if (kIsWeb) {
           final bytes = await pickedFile.readAsBytes();
+          print('Image bytes read: ${bytes.length} bytes');
           setState(() {
             _selectedImageBytes = bytes;
             _selectedImagePath = null;
@@ -88,8 +90,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             _selectedImageBytes = null;
           });
         }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image selected! Click Save to upload.')),
+        );
       }
     } catch (e) {
+      print('Error picking image: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to pick image: $e')),
@@ -107,24 +115,33 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     // Upload image if one was selected
     if (_selectedImagePath != null || _selectedImageBytes != null) {
       try {
+        print('Starting image upload...');
         final svc = context.read<FirestoreService>();
         if (kIsWeb && _selectedImageBytes != null) {
+          print('Uploading web image (${_selectedImageBytes!.length} bytes)');
           avatarUrl = await svc.uploadProfilePictureToCloudinary(
             _existing.userId,
             _selectedImageBytes!,
           );
+          print('Upload successful! URL: $avatarUrl');
         } else if (_selectedImagePath != null) {
+          print('Uploading mobile image from: $_selectedImagePath');
           final imageFile = File(_selectedImagePath!);
           avatarUrl = await svc.uploadProfilePictureFromFile(
             _existing.userId,
             imageFile,
           );
+          print('Upload successful! URL: $avatarUrl');
         }
       } catch (e) {
+        print('Upload error: $e');
         if (!mounted) return;
         setState(() => _uploadingImage = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload image: $e')),
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            duration: const Duration(seconds: 5),
+          ),
         );
         return;
       }
@@ -151,12 +168,18 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       updatedAt: now,
     );
 
+    print('Saving profile with avatarUrl: $avatarUrl');
     await context.read<FirestoreService>().upsertUserProfile(updated);
+    print('Profile saved successfully!');
 
     if (!mounted) return;
     setState(() => _uploadingImage = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved')),
+      SnackBar(
+        content: Text(avatarUrl != _existing.avatarUrl
+          ? 'Profile and picture saved!'
+          : 'Profile saved'),
+      ),
     );
     Navigator.of(context).pop();
   }

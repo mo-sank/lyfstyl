@@ -60,9 +60,12 @@ class FirestoreService {
 
   // Users: create/update/get profile
   Future<void> upsertUserProfile(UserProfile profile) async {
+    final data = profile.toMap();
+    print('upsertUserProfile - Saving to Firestore: ${data['avatarUrl']}');
     await usersCol
         .doc(profile.userId)
-        .set(profile.toMap(), SetOptions(merge: true));
+        .set(data, SetOptions(merge: true));
+    print('upsertUserProfile - Save complete');
   }
 
   // Upload profile picture to Cloudinary
@@ -91,10 +94,13 @@ final uploadPresetValue =
 
       // Create multipart request
       final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudNameValue/image/upload');
-      
+
+      // Add timestamp to ensure unique URL for each upload
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
       final request = http.MultipartRequest('POST', uri);
       request.fields['upload_preset'] = uploadPresetValue;
-      request.fields['public_id'] = 'profile_pictures/$userId';
+      request.fields['public_id'] = 'profile_pictures/${userId}_$timestamp';
       request.fields['folder'] = 'lyfstyl/profiles';
       
       // Add image file
@@ -335,9 +341,12 @@ final uploadPresetValue =
   Future<UserProfile?> getUserProfile(String uid) async {
     try {
       // FIXED: Changed from 'userProfiles' to 'users' to match other methods
-      final doc = await usersCol.doc(uid).get();
+      // Force fetch from server, not cache
+      final doc = await usersCol.doc(uid).get(const GetOptions(source: Source.server));
       if (!doc.exists) return null;
-      return UserProfile.fromDoc(doc);
+      final profile = UserProfile.fromDoc(doc);
+      print('getUserProfile - Loaded from Firestore: ${profile.avatarUrl}');
+      return profile;
     } catch (e) {
       print('Error fetching profile by UID: $e');
       return null;
