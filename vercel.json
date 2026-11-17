@@ -16,7 +16,7 @@
       "dest": "/api/$1"
     },
     {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json|wasm|ttf|otf|woff|woff2))",
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json|wasm|ttf|otf|woff|woff2|eot))",
       "dest": "/build/web/$1"
     },
     {
